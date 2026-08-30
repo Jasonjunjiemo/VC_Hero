@@ -12,6 +12,11 @@ DIAG = os.path.join(ROOT, "docs", "diagrams")
 PERF = json.load(open(os.path.join(ROOT, "tests", "_perf_result.json"), encoding="utf-8"))
 
 doc = Document()
+# 文档元数据（避免默认 python-docx 作者名）
+cp = doc.core_properties
+cp.author = "Jasonjunjiemo"
+cp.last_modified_by = "Jasonjunjiemo"
+cp.title = "VC Hero 项目原型架构性能测试"
 
 # 全局中文字体
 style = doc.styles["Normal"]
