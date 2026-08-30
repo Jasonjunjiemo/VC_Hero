@@ -36,6 +36,12 @@ class StubClient:
             "feedback": "总体判断：基础尚可但稳定性不足。\n优势：回答具体。\n问题：取舍能力欠缺。\n建议：加强取舍训练。",
         }
 
+    def generate_reply(self, system_prompt, history, review_prompt="Reply_Self_Review"):
+        return self.interviewer_reply(system_prompt, history)
+
+    def chat(self, messages, max_tokens, response_format=None, retries=4):
+        return "训练总结：学员进步明显，下一步重点练习渠道优先级判断。"
+
 
 def make_pdf_bytes():
     """手工构造一个含文本流的最小 PDF。"""
@@ -182,7 +188,53 @@ def main():
     d = c.req("POST", f"/api/sessions/{sid}/answer", {"content": "还能答吗"})
     expect("error" in d, "结束后禁止回答")
 
-    print("[6] 删除")
+    print("[7] 训练会话（学习会话）")
+    d = c.req("POST", "/api/sessions", {"kind": "training", "name": "空白训练",
+                                        "context_type": "none"})
+    expect(d.get("ok") and d["session"]["kind"] == "training", "创建空白训练会话")
+    tid = d["session"]["id"]
+    d = c.req("POST", "/api/sessions", {"kind": "training", "name": "导入面试记录",
+                                        "context_type": "session",
+                                        "context_session_id": "nonexistentid"})
+    # 会话不存在，应报错
+    expect("error" in d, "导入不存在的面试会话被拒绝")
+    # 新建一场面试会话用于导入
+    d = c.req("POST", "/api/sessions", {"kind": "interview", "name": "导入源",
+                                        "resume_id": rid, "level": "low",
+                                        "task_count": 1, "time_limit_min": None})
+    src_id = d["session"]["id"]
+    d = c.req("POST", "/api/sessions", {"kind": "training", "name": "导入面试记录",
+                                        "context_type": "session",
+                                        "context_session_id": src_id})
+    expect(d.get("ok") and d["session"]["context_label"].startswith("面试记录"),
+           "从面试会话导入训练上下文")
+    tid2 = d["session"]["id"]
+
+    # 空白会话：开始 -> 作答 -> 结束生成总结
+    d = c.req("POST", f"/api/sessions/{tid}/start", {})
+    expect(d.get("ok") and d["session"]["status"] == "active", "训练开始")
+    d = c.req("POST", f"/api/sessions/{tid}/answer", {"content": "我会先列出十个渠道。"})
+    expect(d.get("ok") and len(d["session"]["messages"]) == 3, "训练回合推进")
+    d = c.req("POST", f"/api/sessions/{tid}/finish", {})
+    expect(d["session"]["status"] == "scored", "训练结束")
+    expect("训练总结" in d["session"]["result"]["summary"], "生成训练总结")
+
+    print("[8] 训练上下文文件上传")
+    boundary2 = "----ctxtest"
+    payload = (f"--{boundary2}\r\nContent-Disposition: form-data; name=\"file\"; "
+               f"filename=\"notes.md\"\r\nContent-Type: text/markdown\r\n\r\n"
+               "# 我的复盘\n渠道判断薄弱，需要重点训练渠道优先级。\r\n"
+               f"--{boundary2}--\r\n").encode()
+    r = urllib.request.Request(BASE + "/api/context-files", data=payload, method="POST")
+    r.add_header("Content-Type", f"multipart/form-data; boundary={boundary2}")
+    r.add_header("Cookie", c.cookie)
+    d = json.loads(urllib.request.urlopen(r, timeout=30).read().decode())
+    expect(d.get("ok") and "渠道" in d["text"], "md 文件抽取为上下文文本")
+
+    print("[9] 删除")
+    d = c.req("DELETE", f"/api/sessions/{tid}")
+    d = c.req("DELETE", f"/api/sessions/{tid2}")
+    d = c.req("DELETE", f"/api/sessions/{src_id}")
     d = c.req("DELETE", f"/api/sessions/{sid}")
     expect(d.get("ok"), "删除会话")
     d = c.req("DELETE", f"/api/resumes/{rid}")

@@ -193,7 +193,7 @@ def _session_path(user_id, session_id):
     return os.path.join(sessions_dir(user_id), session_id + ".json")
 
 
-def list_sessions(user_id):
+def list_sessions(user_id, kind=None):
     d = sessions_dir(user_id)
     if not os.path.isdir(d):
         return []
@@ -201,19 +201,22 @@ def list_sessions(user_id):
     for f in sorted(os.listdir(d)):
         if f.endswith(".json"):
             s = read_json(os.path.join(d, f))
-            if s:
+            if s and (kind is None or s.get("kind", "interview") == kind):
                 out.append(s)
     out.sort(key=lambda s: s.get("created_at", 0), reverse=True)
     return out
 
 
-def create_session(user_id, name, resume_id, level, task_count, time_limit_min):
-    tmin, tmax, cap = config.LEVEL_RANGES[level]
+def create_session(user_id, name, kind="interview", resume_id=None, level="medium",
+                   task_count=2, time_limit_min=None, context_type="none",
+                   context_text="", context_label=""):
+    tmin, tmax, cap = config.LEVEL_RANGES.get(level, config.LEVEL_RANGES["medium"])
     s = {
         "id": new_id(),
         "user_id": user_id,
         "name": name,
-        "resume_id": resume_id,
+        "kind": kind,          # interview / training
+        "resume_id": resume_id or "",
         "resume_name": "",
         "level": level,
         "cv_target_min": tmin,
@@ -221,6 +224,9 @@ def create_session(user_id, name, resume_id, level, task_count, time_limit_min):
         "cv_cap": cap,
         "task_count": task_count,
         "time_limit_min": time_limit_min,
+        "context_type": context_type,   # none / text / session（训练会话）
+        "context_text": context_text,
+        "context_label": context_label,
         "tasks": [],
         "status": "created",   # created / active / scored
         "phase": "cv",         # cv / task

@@ -5,7 +5,7 @@ import tempfile
 
 from flask import (Blueprint, current_app, jsonify, request, send_from_directory)
 
-from . import config, interview, pdfutil, storage
+from . import config, interview, pdfutil, storage, training
 
 bp = Blueprint("api", __name__, url_prefix="/api")
 
@@ -144,19 +144,40 @@ def remove_resume(resume_id):
     return jsonify({"ok": True})
 
 
+# ---------------- 训练上下文文件 ----------------
+
+@bp.post("/context-files")
+@login_required
+def upload_context_file():
+    f = request.files.get("file")
+    if not f or not f.filename:
+        return _bad("请选择文件")
+    data = f.read()
+    if len(data) > config.RESUME_MAX_MB * 4 * 1024 * 1024:
+        return _bad("文件过大（最大 40MB）")
+    try:
+        text = pdfutil.extract_uploaded_text(f.filename, data)
+    except pdfutil.PdfExtractError as e:
+        return _bad(str(e))
+    return jsonify({"ok": True, "text": text[:30000], "filename": f.filename})
+
+
 # ---------------- 会话 ----------------
 
 def _session_view(s, detail=False):
     v = {
         "id": s["id"],
+        "kind": s.get("kind", "interview"),
         "name": s["name"],
-        "resume_id": s["resume_id"],
-        "resume_name": s["resume_name"],
-        "level": s["level"],
-        "cv_target_min": s["cv_target_min"],
-        "cv_target_max": s["cv_target_max"],
-        "task_count": s["task_count"],
-        "time_limit_min": s["time_limit_min"],
+        "resume_id": s.get("resume_id", ""),
+        "resume_name": s.get("resume_name", ""),
+        "level": s.get("level", ""),
+        "cv_target_min": s.get("cv_target_min"),
+        "cv_target_max": s.get("cv_target_max"),
+        "task_count": s.get("task_count"),
+        "time_limit_min": s.get("time_limit_min"),
+        "context_type": s.get("context_type", "none"),
+        "context_label": s.get("context_label", ""),
         "status": s["status"],
         "created_at": s["created_at"],
         "started_at": s["started_at"],
@@ -167,35 +188,78 @@ def _session_view(s, detail=False):
         v["result"] = s["result"]
     if detail:
         v["messages"] = s["messages"]
-        v["phase"] = s["phase"]
-        v["cv_asked"] = s["cv_asked"]
-        v["task_index"] = s["task_index"]
-        v["task_total"] = len(s["tasks"])
+        v["phase"] = s.get("phase")
+        v["cv_asked"] = s.get("cv_asked")
+        v["task_index"] = s.get("task_index")
+        v["task_total"] = len(s.get("tasks", []))
     return v
 
 
 @bp.get("/sessions")
 @login_required
 def sessions():
-    return jsonify({"sessions": [_session_view(s) for s in storage.list_sessions(current_user()["id"])]})
+    kind = request.args.get("kind", "interview")
+    if kind not in ("interview", "training"):
+        return _bad("kind 不合法")
+    return jsonify({"sessions": [_session_view(s) for s in storage.list_sessions(current_user()["id"], kind)]})
+
+
+def _interview_import_text(s):
+    """把一场完整面试会话（对话 + 评级 + 反馈）转成训练上下文文本。"""
+    lines = [f"面试会话：{s['name']}", ""]
+    for m in s["messages"]:
+        who = "面试官" if m["role"] == "interviewer" else "候选人"
+        lines.append(f"【{who}】{m['content']}")
+    r = s.get("result")
+    if r:
+        lines += ["", f"【最终评级】{r.get('grade', '-')}（总分 {r.get('total', '-')}）",
+                  f"【面试反馈】{r.get('feedback', '')}"]
+    return "\n".join(lines)
 
 
 @bp.post("/sessions")
 @login_required
 def create_session():
     user_id = current_user()["id"]
-    if len(storage.list_sessions(user_id)) >= config.MAX_SESSIONS_PER_USER:
+    body = request.json or {}
+    kind = body.get("kind", "interview")
+    if kind not in ("interview", "training"):
+        return _bad("kind 不合法")
+    if len(storage.list_sessions(user_id, kind)) >= config.MAX_SESSIONS_PER_USER:
         return _bad(f"最多创建 {config.MAX_SESSIONS_PER_USER} 个会话")
 
-    body = request.json or {}
     name = (body.get("name") or "").strip()[:50]
+    if not name:
+        return _bad("请填写会话名称")
+
+    if kind == "training":
+        context_type = body.get("context_type", "none")
+        context_text, context_label = "", ""
+        if context_type == "text":
+            context_text = (body.get("context_text") or "").strip()[:20000]
+            context_label = (body.get("context_label") or "导入的材料").strip()[:50]
+            if len(context_text) < 10:
+                return _bad("导入的材料内容太短")
+        elif context_type == "session":
+            src = storage.get_session(user_id, body.get("context_session_id") or "")
+            if not src or src.get("kind", "interview") != "interview":
+                return _bad("请选择要导入的面试会话")
+            context_text = _interview_import_text(src)[:20000]
+            context_label = "面试记录：" + src["name"]
+        elif context_type != "none":
+            return _bad("context_type 不合法")
+        s = storage.create_session(user_id, name, kind="training",
+                                   context_type=context_type,
+                                   context_text=context_text,
+                                   context_label=context_label)
+        return jsonify({"ok": True, "session": _session_view(s)})
+
+    # ---- 面试会话 ----
     resume_id = body.get("resume_id") or ""
     level = body.get("level") or "medium"
     task_count = body.get("task_count")
     time_limit_min = body.get("time_limit_min")
 
-    if not name:
-        return _bad("请填写会话名称")
     resume = next((r for r in storage.list_resumes(user_id) if r["id"] == resume_id), None)
     if not resume:
         return _bad("请选择一份简历")
@@ -217,7 +281,9 @@ def create_session():
         if not (1 <= time_limit_min <= config.TIME_LIMIT_MAX_MIN):
             return _bad(f"时长需在 1-{config.TIME_LIMIT_MAX_MIN} 分钟之间")
 
-    s = storage.create_session(user_id, name, resume_id, level, task_count, time_limit_min)
+    s = storage.create_session(user_id, name, kind="interview", resume_id=resume_id,
+                               level=level, task_count=task_count,
+                               time_limit_min=time_limit_min)
     s["resume_name"] = resume["filename"]
     s["tasks"] = interview.pick_tasks(task_count)
     storage.save_session(s)
@@ -255,13 +321,24 @@ def remove_session(session_id):
     return jsonify({"ok": True})
 
 
-# ---------------- 面试 ----------------
+# ---------------- 面试 / 训练交互 ----------------
+
+def _engine_for(user_id, session_id):
+    """按会话 kind 返回对应引擎模块与校验后的会话。"""
+    s = storage.get_session(user_id, session_id)
+    if not s:
+        raise interview.InterviewError("会话不存在")
+    if s.get("kind", "interview") == "training":
+        return training, s
+    return interview, s
+
 
 @bp.post("/sessions/<session_id>/start")
 @login_required
 def start_interview(session_id):
     try:
-        s = interview.start_session(_client(), current_user()["id"], session_id)
+        engine, _ = _engine_for(current_user()["id"], session_id)
+        s = engine.start_session(_client(), current_user()["id"], session_id)
         return jsonify({"ok": True, "session": _session_view(s, detail=True)})
     except interview.InterviewError as e:
         return _bad(str(e))
@@ -271,8 +348,9 @@ def start_interview(session_id):
 @login_required
 def answer(session_id):
     try:
-        s = interview.answer(_client(), current_user()["id"], session_id,
-                             (request.json or {}).get("content"))
+        engine, _ = _engine_for(current_user()["id"], session_id)
+        s = engine.answer(_client(), current_user()["id"], session_id,
+                          (request.json or {}).get("content"))
         return jsonify({"ok": True, "session": _session_view(s, detail=True)})
     except interview.InterviewError as e:
         return _bad(str(e))
@@ -282,7 +360,8 @@ def answer(session_id):
 @login_required
 def finish(session_id):
     try:
-        s = interview.finish(_client(), current_user()["id"], session_id)
+        engine, _ = _engine_for(current_user()["id"], session_id)
+        s = engine.finish(_client(), current_user()["id"], session_id)
         return jsonify({"ok": True, "session": _session_view(s, detail=True)})
     except interview.InterviewError as e:
         return _bad(str(e))

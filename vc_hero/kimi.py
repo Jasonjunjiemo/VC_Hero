@@ -81,11 +81,14 @@ class KimiClient:
                 usage.get("prompt_tokens", 0),
                 usage.get("completion_tokens", 0))
 
-    # ---------------- 面试官回复：生成 + 恰好 2 轮自我迭代 ----------------
+    # ---------- 面试官/训练官回复：生成 + 恰好 2 轮自我迭代 ----------------
 
     def interviewer_reply(self, system_prompt, history):
-        """生成面试官回复。草稿先生成，再迭代恰好 SELF_REVIEW_ROUNDS 轮，最后一版才发出。"""
-        review_prompt = prompts.load_prompt("Reply_Self_Review")
+        return self.generate_reply(system_prompt, history)
+
+    def generate_reply(self, system_prompt, history, review_prompt="Reply_Self_Review"):
+        """生成一条正式回复。草稿先生成，再迭代恰好 SELF_REVIEW_ROUNDS 轮，最后一版才发出。"""
+        review_prompt_text = prompts.load_prompt(review_prompt)
 
         draft = self.chat(
             [{"role": "system", "content": system_prompt}] + history,
@@ -93,7 +96,7 @@ class KimiClient:
         )
         reply = draft
         for _ in range(config.SELF_REVIEW_ROUNDS):
-            reply = self._review_once(review_prompt, system_prompt, history, reply)
+            reply = self._review_once(review_prompt_text, system_prompt, history, reply)
         return reply
 
     def _review_once(self, review_prompt, system_prompt, history, draft):
