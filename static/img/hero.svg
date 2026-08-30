@@ -14,15 +14,15 @@
   <circle cx="336" cy="168" r="30" fill="#9aa4bb"/>
   <path d="M290 246c0-27 20-46 46-46s46 19 46 46v6H290z" fill="#9aa4bb"/>
 
-  <!-- 考官气泡（白）：尾巴先画、压在矩形下，保证连接无缝 -->
-  <path d="M222 96l-10 20 22-14z" fill="#ffffff"/>
-  <rect x="198" y="46" width="152" height="52" rx="13" fill="#ffffff" stroke="#dfe3ee" stroke-width="1.5"/>
+  <!-- 考官气泡（白）：气泡与尾巴合并为单一路径，描边连续无缝 -->
+  <path d="M211 46 H337 A13 13 0 0 1 350 59 V85 A13 13 0 0 1 337 98 H250 L214 118 L234 98 H211 A13 13 0 0 1 198 85 V59 A13 13 0 0 1 211 46 Z"
+        fill="#ffffff" stroke="#dfe3ee" stroke-width="1.5"/>
   <rect x="214" y="62" width="98" height="8" rx="4" fill="#4656e0" opacity="0.55"/>
   <rect x="214" y="78" width="64" height="8" rx="4" fill="#c9d0ee"/>
 
   <!-- 考生气泡（蓝） -->
-  <path d="M306 128l10 20-22-14z" fill="#4656e0"/>
-  <rect x="248" y="78" width="152" height="52" rx="13" fill="#4656e0"/>
+  <path d="M261 78 H387 A13 13 0 0 1 400 91 V117 A13 13 0 0 1 387 130 H300 L340 152 L320 130 H261 A13 13 0 0 1 248 117 V91 A13 13 0 0 1 261 78 Z"
+        fill="#4656e0"/>
   <rect x="264" y="94" width="98" height="8" rx="4" fill="#ffffff" opacity="0.92"/>
   <rect x="264" y="110" width="64" height="8" rx="4" fill="#ffffff" opacity="0.55"/>
 

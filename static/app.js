@@ -511,6 +511,12 @@
     const foot = q("#chat-foot");
     if (!foot || !state.current) return;
     const s = state.current;
+    const body = q("#chat-body");
+    if (s.status === "created") {
+      if (body) body.classList.add("starting");
+    } else if (body) {
+      body.classList.remove("starting");
+    }
     if (s.status === "scored") {
       foot.innerHTML = "";
       q("#chat-body").classList.add("ended");

@@ -88,7 +88,7 @@ h2.card-title { font-size: 17px; margin-bottom: 16px; font-weight: 600; }
 .auth-tabs button {
   flex: 1; background: #eef0f6; color: var(--ink-2); font-weight: 500; box-shadow: none;
 }
-.auth-tabs button.on { background: var(--grad); color: #fff; }
+.auth-tabs button.on { background: var(--brand); color: #fff; }
 .auth-card form { display: flex; flex-direction: column; gap: 13px; }
 .auth-note { text-align: center; color: var(--ink-3); font-size: 12.5px; margin-top: 18px; }
 .auth-note a { color: var(--brand); text-decoration: none; }
@@ -271,7 +271,10 @@ h2.card-title { font-size: 17px; margin-bottom: 16px; font-weight: 600; }
 .mini-toast.fade { opacity: 0; }
 
 /* ---------- 考试开始页 ---------- */
-.start-wrap { flex: 1; display: flex; align-items: center; justify-content: center; padding: 10px 0 40px; overflow-y: auto; }
+/* 考试开始页：占满整个内容区并垂直居中 */
+.chat-body.starting .chat-scroll { display: none; }
+#chat-foot { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.start-wrap { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 10px 0 40px; overflow-y: auto; }
 .start-card { width: 560px; max-width: 100%; text-align: center; padding: 42px 46px; }
 .start-eyebrow {
   display: inline-block; font-size: 12.5px; letter-spacing: 2px; font-weight: 700;
