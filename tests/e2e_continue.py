@@ -111,6 +111,37 @@ def main():
           lastAi: document.querySelectorAll('.msg.ai .bubble').length
         })""")
 
+        # ===== 面板位置恒定性：记录位置 → 退出重进（服务端渲染）→ 对比 =====
+        def snapshot():
+            return c.eval("""(function(){try{return JSON.stringify({url:location.pathname.slice(0,25),order:[...document.querySelector('.chat-inner').children].map(el =>
+              el.className.includes('result') ? 'PANEL' : el.className.includes('msg') ? 'msg'
+                : el.className.toString().slice(0,12))})}catch(e){return 'ERR:'+e.message}})()""")
+
+        pos_before = snapshot()
+        c.goto(BASE + "/session/ivx1")   # 重进（active 会话 = 服务端渲染页）
+        time.sleep(1.8)
+        pos_reentry = snapshot()
+        print("reentry:", pos_reentry, flush=True)
+        out["panel_position_reentry"] = {"before": pos_before, "after": pos_reentry,
+                                         "stable": pos_before == pos_reentry}
+
+        # 再答一轮，面板应仍锚定
+        c.eval("""(async () => {
+          const ta = document.querySelector('#answer-input');
+          if (ta) {
+            ta.value = '第二轮续聊';
+            ta.dispatchEvent(new KeyboardEvent('keydown', {key:'Enter', bubbles:true, cancelable:true}));
+          }
+        })()""")
+        time.sleep(2)
+        pos_after2 = snapshot()
+        print("after2:", pos_after2, flush=True)
+        out["panel_position_after_more"] = {
+          "panels": pos_after2.count("PANEL"),
+          "anchor_stable": pos_after2.index("PANEL") == pos_reentry.index("PANEL") if "PANEL" in pos_reentry else None,
+          "order": pos_after2,
+        }
+
         # 训练会话验证
         c.goto(BASE + "/session/trx1")
         time.sleep(1.5)

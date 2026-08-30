@@ -1119,10 +1119,14 @@
       state.view = "chat";
       state.current = { id: location.pathname.match(/^\/session\/([^/?]+)/)[1],
                         kind: b.kind, name: b.name, messages: b.messages,
-                        status: "active", time_limit_min: null };
+                        status: "active", time_limit_min: null,
+                        result: b.result || null,
+                        results_history: b.results_history || [],
+                        result_boundary: b.result_boundary };
       state.atBottom = true;
       q("#back").addEventListener("click", () => { location.href = "/"; });
       syncFinishBtn();
+      renderMessages();  // 按边界重建消息流，插入结果面板（服务端模板只渲染了消息）
       const box = q("#chat-scroll");
       box.scrollTop = box.scrollHeight;
       box.addEventListener("scroll", () => {

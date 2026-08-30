@@ -99,6 +99,9 @@ def continue_session(client, user_id, session_id):
         s["ended_at"] = None
         s["continuation_mode"] = True
         s["since_result"] = 0
+        if s.get("result") and "result_boundary" not in s:
+            # 旧会话回填总结锚点，保证面板位置不随新消息漂移
+            s["result_boundary"] = len(s["messages"])
         storage.save_session(s)
         return _next(client, s)
 

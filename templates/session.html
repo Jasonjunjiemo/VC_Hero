@@ -46,7 +46,10 @@
 window.__BOOT_SESSION__ = {
   kind: {{ kind | tojson }},
   name: {{ name | tojson }},
-  messages: {{ messages_json | safe }}
+  messages: {{ messages_json | safe }},
+  result: {{ result_json | safe }},
+  results_history: {{ results_history_json | safe }},
+  result_boundary: {{ result_boundary | tojson }}
 };
 </script>
 <script src="/static/app.js?v={{ v }}"></script>

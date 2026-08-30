@@ -70,7 +70,16 @@ def _build_system_prompt(s, resume_text):
     else:
         phase_rules = prompts.load_prompt("Deal_Sourcing_Knowhow_Task_and_Questioning")
         task_name, task_text = s["tasks"][min(s["task_index"], len(s["tasks"]) - 1)]
-        if s["task_turns"] == 0:
+        if s.get("continuation_mode") and s["task_turns"] >= config.TASK_TURNS_PER_TASK:
+            # 议程已尽后的自由续聊：考官主导、每轮换点，避免无限追问同一场景
+            phase_desc = (
+                f"面试自然推进中，当前语境是行业场景任务（{task_name}）。由你主导节奏："
+                "每一轮由你主动选择下一个考察点，不要停留在候选人上一轮回答的同一个细节上；"
+                "在该场景内轮换不同侧面（渠道、判断标准、优先级、应变、取舍、表达），"
+                "也可以切换到候选人尚未被问过的经历或能力角度。"
+                "每换一个点，就像开一个新话题一样自然过渡，已问过的问题不要再问。"
+            )
+        elif s["task_turns"] == 0:
             phase_desc = (
                 f"当前进入阶段二【行业 Know-how 场景任务】的第 {s['task_index'] + 1}/{len(s['tasks'])} 个任务"
                 f"（{task_name}）。请自然地向候选人布置以下任务场景并提出第一个问题：\n{task_text}"
@@ -160,6 +169,9 @@ def continue_session(client, user_id, session_id):
         s["ended_at"] = None
         s["continuation_mode"] = True
         s["since_result"] = 0
+        if s.get("result") and "result_boundary" not in s:
+            # 旧会话回填结果锚点，保证面板位置不随新消息漂移
+            s["result_boundary"] = len(s["messages"])
         storage.save_session(s)
         return _ask_next(client, s)
 
@@ -185,25 +197,45 @@ def _get_active(user_id, session_id):
 def _ask_next(client, s):
     """决定下一步：继续提问还是进入评分，并生成面试官回复（经 2 轮自我迭代）。
 
-    简历阶段结束有两种触发：模型在回复末尾输出 [[CV_DONE]] 标记（模型自行决定题数），
+    简历阶段结束触发：模型在回复末尾输出 [[CV_DONE]] 标记（模型自行决定题数），
     或答题数达到安全上限（防止模型忘记收尾）。
-    继续面试（continuation_mode）不推进阶段/任务计数，在当前语境中自由追问。
+    继续面试（continuation_mode）与正常面试走同一套议程推进；唯一区别是议程耗尽
+    （cv 问满且无剩余任务 / 任务全部做完）时不评分，钳回最后一个任务自由续聊，
+    直到满 N 轮由 answer() 自动生成新一轮结果。提前结束的面试（task 未做过）续聊时
+    会继续走完议程，task 自然出现。
     """
-    if not s.get("continuation_mode"):
-        while True:
-            if s["phase"] == "cv" and s["cv_asked"] >= s["cv_cap"]:
-                if s["task_index"] >= len(s["tasks"]):
-                    return _score(client, s)
-                s["phase"] = "task"
-                s["task_turns"] = 0
-                continue
-            if s["phase"] == "task" and s["task_turns"] >= config.TASK_TURNS_PER_TASK:
-                s["task_index"] += 1
-                s["task_turns"] = 0
-                if s["task_index"] >= len(s["tasks"]):
-                    return _score(client, s)
-                continue
-            break
+    cont = s.get("continuation_mode")
+    agenda_done = False
+    while True:
+        if s["phase"] == "cv" and s["cv_asked"] >= s["cv_cap"]:
+            if s["task_index"] >= len(s["tasks"]):
+                agenda_done = True
+                break
+            s["phase"] = "task"
+            s["task_turns"] = 0
+            continue
+        if s["phase"] == "task" and s["task_turns"] >= config.TASK_TURNS_PER_TASK:
+            s["task_index"] += 1
+            s["task_turns"] = 0
+            if s["task_index"] >= len(s["tasks"]):
+                agenda_done = True
+                break
+            continue
+        break
+
+    if agenda_done:
+        if not cont:
+            return _score(client, s)
+        # 续聊：钳回最后一个任务自由追问（由 since_result 计数触发新一轮结果）
+        if s["tasks"]:
+            s["phase"] = "task"
+            s["task_index"] = len(s["tasks"]) - 1
+            s["task_turns"] = config.TASK_TURNS_PER_TASK  # 不再推进议程
+    elif cont and s["phase"] == "task" and s["task_index"] >= len(s["tasks"]):
+        # 防御：续聊中 task_index 越界时钳回
+        s["task_index"] = len(s["tasks"]) - 1
+        if s["task_turns"] < config.TASK_TURNS_PER_TASK:
+            s["task_turns"] = config.TASK_TURNS_PER_TASK
 
     resume_text = storage.get_resume_text(s["user_id"], s["resume_id"]) or ""
     system_prompt = _build_system_prompt(s, resume_text)
@@ -218,16 +250,13 @@ def _ask_next(client, s):
     if s["phase"] == "cv":
         s["cv_asked"] += 1
         storage.save_session(s)
-        if cv_done:
-            # 模型主动收尾：若无剩余任务则直接评分，否则立即布置任务开场
-            if s["task_index"] >= len(s["tasks"]):
-                return _score(client, s)
+        if cv_done and s["task_index"] < len(s["tasks"]):
+            # 模型主动收尾：布置下一个任务开场
             s["phase"] = "task"
             s["task_turns"] = 0
             return _ask_next(client, s)
         return s
-    if not s.get("continuation_mode"):
-        s["task_turns"] += 1
+    s["task_turns"] += 1
     storage.save_session(s)
     return s
 

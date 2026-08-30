@@ -58,6 +58,9 @@ def create_app():
                 v=static_version(),
                 messages=s["messages"],
                 messages_json=json.dumps(s["messages"], ensure_ascii=False),
+                result_json=json.dumps(s.get("result"), ensure_ascii=False),
+                results_history_json=json.dumps(s.get("results_history", []), ensure_ascii=False),
+                result_boundary=s.get("result_boundary"),
             )
         # 未开始/无消息：返回应用入口，由前端渲染开始卡片
         return render_template("index.html", v=static_version())
