@@ -400,13 +400,25 @@ h2.card-title { font-size: 17px; margin-bottom: 16px; font-weight: 600; }
 }
 .chat-scroll::-webkit-scrollbar-track, .modal::-webkit-scrollbar-track, .start-wrap::-webkit-scrollbar-track { background: transparent; }
 
-/* ---------- 悬浮顶栏：全宽透明，不占文档流、不遮挡内容；按钮贴左右边缘 ---------- */
+/* ---------- 顶栏：文档流内、全宽、透明无底 ---------- */
 .topbar {
-  position: fixed; top: 0; left: 0; right: 0;
+  position: static;
   height: 56px; padding: 0 22px;
   display: flex; align-items: center; gap: 12px;
   background: transparent; border: none; backdrop-filter: none;
-  z-index: 10;
 }
-.page { padding-top: 76px; }
-.chat-body { height: 100vh; height: 100dvh; padding-top: 64px; }
+.page { padding-top: 28px; }
+
+/* 消息滚动区全宽（滚动条在视口最右侧），内容列居中 */
+.chat-body {
+  height: calc(100vh - 56px); height: calc(100dvh - 56px);
+  max-width: none; margin: 0; padding: 6px 0 0;
+}
+.chat-scroll { padding: 0; }
+.chat-inner {
+  max-width: 880px; margin: 0 auto; padding: 4px 22px 18px;
+  display: flex; flex-direction: column; gap: 18px;
+}
+#chat-foot > * { max-width: 880px; margin-left: auto; margin-right: auto; width: 100%; }
+#chat-foot .start-wrap { max-width: none; }
+#chat-foot { padding: 0 22px; box-sizing: border-box; }

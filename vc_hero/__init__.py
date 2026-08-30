@@ -20,6 +20,8 @@ def create_app():
 
     app = Flask(__name__, static_folder=config.STATIC_DIR, static_url_path="/static",
                 template_folder=os.path.join(config.BASE_DIR, "templates"))
+    # 静态资源不缓存：确保前端总是拿到最新版本
+    app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
     app.extensions["kimi_client"] = KimiClient(api_key, RateLimiter())
     app.register_blueprint(routes.bp)
 

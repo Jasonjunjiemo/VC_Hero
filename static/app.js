@@ -741,7 +741,9 @@
         <div class="timer" id="timer"></div>
       </div>
       <div class="chat-body" id="chat-body">
-        <div class="chat-scroll" id="chat-scroll"></div>
+        <div class="chat-scroll" id="chat-scroll">
+          <div class="chat-inner" id="chat-inner"></div>
+        </div>
         <div id="chat-foot"><div class="boot-loading" style="padding:30px 0">加载会话中…</div></div>
       </div>`;
     q("#back").addEventListener("click", () => { location.href = "/"; });
@@ -802,7 +804,7 @@
   }
 
   function renderMessages() {
-    const box = q("#chat-scroll");
+    const box = q("#chat-inner");
     if (!box || !state.current) return;
     const s = state.current;
     const stick = state.atBottom;
@@ -812,7 +814,8 @@
         <div class="bubble">${esc(m.content)}</div>
       </div>`).join("");
     if (state.busy) appendThinking(box);
-    if (stick) box.scrollTop = box.scrollHeight;
+    const scroller = q("#chat-scroll");
+    if (stick && scroller) scroller.scrollTop = scroller.scrollHeight;
   }
 
   function appendThinking(box) {
@@ -837,7 +840,7 @@
     if (s.status === "scored") {
       foot.innerHTML = "";
       q("#chat-body").classList.add("ended");
-      const box = q("#chat-scroll");
+      const box = q("#chat-inner");
       if (box && !box.querySelector(".result")) {
         box.insertAdjacentHTML("beforeend",
           isTrain ? trainingResultHtml(s.result) : resultHtml(s.result));

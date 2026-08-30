@@ -17,12 +17,14 @@
   </div>
   <div class="chat-body" id="chat-body">
     <div class="chat-scroll" id="chat-scroll">
-      {% for m in messages %}
-      <div class="msg {{ 'me' if m.role == 'candidate' else 'ai' }}">
-        <div class="avatar">{{ '我' if m.role == 'candidate' else 'VC' }}</div>
-        <div class="bubble">{{ m.content }}</div>
+      <div class="chat-inner" id="chat-inner">
+        {% for m in messages %}
+        <div class="msg {{ 'me' if m.role == 'candidate' else 'ai' }}">
+          <div class="avatar">{{ '我' if m.role == 'candidate' else 'VC' }}</div>
+          <div class="bubble">{{ m.content }}</div>
+        </div>
+        {% endfor %}
       </div>
-      {% endfor %}
     </div>
     <div id="chat-foot">
       <div class="composer" id="composer">
