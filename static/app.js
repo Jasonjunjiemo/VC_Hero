@@ -80,6 +80,17 @@
     });
   }
 
+  // 未登录时的简易顶栏（右上角登录/注册）
+  function navTopbarHtml() {
+    return `
+      <div class="topbar">
+        <div class="logo"><span class="logo-mark">VC</span><span class="logo-text">Hero</span></div>
+        <div class="spacer"></div>
+        <button class="ghost small" id="nav-login">登录</button>
+        <button class="small" id="nav-register">注册</button>
+      </div>`;
+  }
+
   // ---------- 网站介绍主页（双 tab） ----------
   const LANDING_TABS = {
     interview: {
@@ -125,12 +136,10 @@
     return `
       <div class="page">
         <div class="tab-bar">
-          <button class="tab-btn ${state.tab === "interview" ? "on" : ""}" data-ltab="interview">
-            <span class="tab-name">AI 面试官</span><span class="tab-sub">模拟面试 · A-E 评级</span>
-          </button>
-          <button class="tab-btn ${state.tab === "training" ? "on" : ""}" data-ltab="training">
-            <span class="tab-name">AI 训练官</span><span class="tab-sub">场景训练 · 逐次讲解</span>
-          </button>
+          <div class="tab-seg">
+            <button class="seg-tab ${state.tab === "interview" ? "on" : ""}" data-ltab="interview">AI 面试官</button>
+            <button class="seg-tab ${state.tab === "training" ? "on" : ""}" data-ltab="training">AI 训练官</button>
+          </div>
         </div>
         <div class="tab-content">
           <div class="hero">
@@ -168,13 +177,19 @@
     q("#hero-train")?.addEventListener("click", () => openTrainingModal());
     q("#new-session")?.addEventListener("click", () => openInterviewModal());
     q("#new-training")?.addEventListener("click", () => openTrainingModal());
-    // tab 切换：丝滑过渡，不跳转
+    // tab 切换：左右滑动过渡，不跳转
     app.querySelectorAll("[data-ltab]").forEach(b =>
       b.addEventListener("click", async () => {
-        if (state.tab === b.dataset.ltab) return;
-        state.tab = b.dataset.ltab;
+        const target = b.dataset.ltab;
+        if (state.tab === target) return;
+        const prev = state.tab;
+        state.tab = target;
         await renderHome();
-        q(".tab-content")?.classList.add("tab-anim");
+        const content = q(".tab-content");
+        if (content) {
+          // 向右切（下标变大）内容从右侧滑入，反之从左侧滑入
+          content.classList.add(target === "training" ? "slide-l" : "slide-r");
+        }
       }));
     renderSessionList();
     renderTrainingSessionList();
@@ -193,8 +208,12 @@
       state.sessions = r3.sessions;
       state.trainingSessions = r4.sessions;
     }
-    app.innerHTML = (state.user ? topbarHtml("landing") : "") + landingBodyHtml();
+    app.innerHTML = (state.user ? topbarHtml("landing") : navTopbarHtml()) + landingBodyHtml();
     if (state.user) bindTopbar("landing");
+    else {
+      q("#nav-login").addEventListener("click", () => renderAuth("login"));
+      q("#nav-register").addEventListener("click", () => renderAuth("register"));
+    }
     bindLanding();
   }
 
