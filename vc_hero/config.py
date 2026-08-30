@@ -34,9 +34,9 @@ MAX_SCORING_TOKENS = 8000
 
 # ---- 全局限速（对全部用户生效，负载共享）----
 RATE_WINDOW_SECONDS = 3600
-TOKEN_CAP_PER_HOUR = 150_000     # token/h
-RESPONSE_CAP_PER_HOUR = 90       # response/h（一次 LLM 调用计 1 次 response）
-COST_CAP_PER_HOUR_CNY = 2.0      # 每小时最多消耗 2 元人民币
+TOKEN_CAP_PER_HOUR = 400_000     # token/h
+RESPONSE_CAP_PER_HOUR = 200      # response/h（一次 LLM 调用计 1 次 response）
+COST_CAP_PER_HOUR_CNY = 5.0      # 每小时最多消耗 5 元人民币
 
 # 计费估计（元 / 百万 token）。取保守偏高估计，保证成本上限可靠触发。
 PRICE_INPUT_PER_M = 4.0
