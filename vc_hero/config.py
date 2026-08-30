@@ -13,6 +13,7 @@ MAX_RESUMES_PER_USER = 5
 RESUME_MAX_MB = 10
 MAX_SESSIONS_PER_USER = 10
 TOKEN_TTL_SECONDS = 7 * 24 * 3600  # 登录态有效期
+SESSION_COOKIE = "vc_session"
 
 # 面试问题数量档位 -> 简历环节问题数
 QUESTION_LEVELS = {"low": 3, "medium": 5, "high": 8}

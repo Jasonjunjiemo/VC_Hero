@@ -12,6 +12,7 @@ import threading
 import time
 
 from . import config, prompts, storage
+from .kimi import KimiError
 
 _locks = {}
 _locks_guard = threading.Lock()
@@ -161,7 +162,10 @@ def _ask_next(client, s):
 
     resume_text = storage.get_resume_text(s["user_id"], s["resume_id"]) or ""
     system_prompt = _build_system_prompt(s, resume_text)
-    reply = client.interviewer_reply(system_prompt, _history(s))
+    try:
+        reply = client.interviewer_reply(system_prompt, _history(s))
+    except KimiError as e:
+        raise InterviewError(f"AI 服务暂时不可用，请稍后重试（{e}）")
 
     s["messages"].append({"role": "interviewer", "content": reply,
                           "ts": time.time()})

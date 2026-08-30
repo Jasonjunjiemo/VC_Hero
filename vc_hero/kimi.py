@@ -25,7 +25,7 @@ class KimiClient:
             "model": config.KIMI_MODEL,
             "messages": messages,
             "max_tokens": max_tokens,
-            "temperature": 0.6,
+            "temperature": 1.0,
         }
         if response_format:
             payload["response_format"] = response_format
