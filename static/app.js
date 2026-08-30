@@ -851,8 +851,10 @@
     }
     if (s.status === "created") {
       if (state.busy) {
-        // 已开始：隐藏开始卡片，对话界面全屏，思考气泡在消息流中
-        foot.innerHTML = "";
+        if (body) body.classList.remove("starting");
+        // 已开始：对话视图 + 输入框（可预输入，发送时提示等待）
+        foot.innerHTML = composerHtml();
+        bindComposer(foot);
         return;
       }
       // 考试开始页：信息 + 居中显眼的开始按钮
@@ -889,7 +891,12 @@
       return;
     }
     // 进行中：轮到考生。考官思考时输入框保持可编辑，仅拦截发送并提示。
-    foot.innerHTML = `
+    foot.innerHTML = composerHtml();
+    bindComposer(foot);
+  }
+
+  function composerHtml() {
+    return `
       <div class="composer" id="composer">
         <textarea id="answer-input" rows="2" placeholder="输入你的回答…">${esc(state.draft || "")}</textarea>
         <div class="composer-foot">
@@ -901,7 +908,6 @@
         </div>
       </div>
       <div id="action-err">${state.actionError ? `<div class="err-banner">${esc(state.actionError)}</div>` : ""}</div>`;
-    bindComposer(foot);
   }
 
   // 绑定输入区：Enter 发送、Ctrl+Enter 换行、思考中限发提示
