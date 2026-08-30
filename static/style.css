@@ -488,3 +488,49 @@ h2.card-title { font-size: 17px; margin-bottom: 16px; font-weight: 600; }
 .result.collapsed .panel-chev { transform: rotate(-90deg); }
 .result.collapsed .grade-ring { width: 40px; height: 40px; font-size: 20px; }
 .result .panel-head:hover .result-title { color: var(--brand); }
+
+/* ---------- 右侧结果速览抽屉 ---------- */
+#result-rail {
+  position: fixed; right: 0; top: 50%; transform: translateY(-50%);
+  z-index: 20; display: flex; align-items: center;
+}
+#result-rail .rail-tab {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  background: #fff; border: 1px solid var(--line); border-right: none;
+  border-radius: 10px 0 0 10px; padding: 12px 7px;
+  font-size: 12.5px; font-weight: 600; color: var(--ink-2);
+  box-shadow: -2px 0 8px rgba(23, 30, 48, .06); cursor: pointer;
+}
+#result-rail .rail-tab:hover { color: var(--brand); }
+#result-rail.open .rail-tab { color: var(--brand); }
+#result-rail .rail-panel {
+  position: absolute; right: calc(100% + 6px); top: 50%; transform: translateY(-50%);
+  width: 210px; background: #fff; border: 1px solid var(--line); border-radius: 12px;
+  box-shadow: 0 6px 24px rgba(23, 30, 48, .12); padding: 10px;
+  display: none;
+}
+#result-rail.open .rail-panel { display: block; }
+#result-rail .rail-title {
+  font-size: 12.5px; font-weight: 700; color: var(--ink-2);
+  padding: 4px 8px 8px; border-bottom: 1px solid var(--line); margin-bottom: 6px;
+}
+#result-rail .rail-item {
+  display: flex; align-items: center; gap: 9px; width: 100%;
+  background: transparent; box-shadow: none; border-radius: 8px;
+  padding: 7px 8px; font-size: 13px; color: var(--ink); text-align: left; font-weight: 500;
+}
+#result-rail .rail-item:hover { background: var(--brand-soft); color: var(--brand); }
+#result-rail .rail-grade {
+  width: 22px; height: 22px; min-width: 22px; border-radius: 50%;
+  color: #fff; font-size: 12px; font-weight: 700;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+#result-rail .rail-grade.A { background: #16a06a; }
+#result-rail .rail-grade.B { background: var(--brand); }
+#result-rail .rail-grade.C { background: #8a94a6; }
+#result-rail .rail-grade.D { background: #dd4f45; }
+#result-rail .rail-grade.E { background: #7b3fd4; }
+#result-rail .rail-dot {
+  width: 8px; height: 8px; min-width: 8px; border-radius: 50%; background: var(--brand);
+  margin: 0 7px;
+}

@@ -815,6 +815,17 @@
       </div>`;
   }
 
+  // 结果快照列表：历史快照 + 当前结果（含消息边界），按边界排序
+  function resultSnaps(s) {
+    const snaps = (s.results_history || []).map(h => ({ result: h.result, message_count: h.message_count }));
+    if (s.result) {
+      const b = typeof s.result_boundary === "number" ? s.result_boundary : s.messages.length;
+      snaps.push({ result: s.result, message_count: b });
+    }
+    snaps.sort((a, b2) => a.message_count - b2.message_count);
+    return snaps;
+  }
+
   function renderMessages() {
     const box = q("#chat-inner");
     if (!box || !state.current) return;
@@ -823,12 +834,7 @@
     // 消息与结果面板按边界交错渲染：历史快照 + 当前结果（含其消息边界），与状态无关；
     // 面板留在消息流中，但不进入 AI 上下文
     const panelHtml = s.kind === "training" ? trainingResultHtml : resultHtml;
-    const snaps = (s.results_history || []).map(h => ({ result: h.result, message_count: h.message_count }));
-    if (s.result) {
-      const b = typeof s.result_boundary === "number" ? s.result_boundary : s.messages.length;
-      snaps.push({ result: s.result, message_count: b });
-    }
-    snaps.sort((a, b2) => a.message_count - b2.message_count);
+    const snaps = resultSnaps(s);
     const parts = [];
     let boundary = 0;
     for (const h of snaps) {
@@ -866,8 +872,63 @@
         panel.classList.toggle("collapsed", collapsed);
         state.panelOverride.set(b, collapsed);
       }));
+    renderRail(s, snaps);
     const scroller = q("#chat-scroll");
     if (stick && scroller) scroller.scrollTop = scroller.scrollHeight;
+  }
+
+
+  // 右侧结果速览栏：默认收起的抽屉，点击列表项跳转并展开对应结果面板；无结果时不显示
+  function renderRail(s, snaps) {
+    const host = q("#chat-body");
+    if (!host) return;
+    let rail = q("#result-rail");
+    if (!snaps.length) {
+      rail?.remove();
+      return;
+    }
+    const isTrain = s.kind === "training";
+    const items = snaps.map((h, i) => {
+      const r = h.result || {};
+      const grade = (r.grade || "").toUpperCase();
+      const label = isTrain
+        ? `训练总结 ${i + 1}`
+        : `${grade || "-"} 级${r.total != null ? " · " + esc(r.total) + " 分" : ""}`;
+      const cls = grade && !isTrain ? " " + grade : "";
+      const dot = isTrain ? '<span class="rail-dot"></span>' : `<span class="rail-grade${cls}">${esc(grade || "-")}</span>`;
+      const cur = i === snaps.length - 1 && s.status === "scored" ? "（最新）" : "";
+      return `<button class="rail-item" data-boundary="${h.message_count}">${dot}<span>${label}${cur}</span></button>`;
+    }).join("");
+    if (!rail) {
+      rail = document.createElement("div");
+      rail.id = "result-rail";
+      host.appendChild(rail);
+    }
+    rail.innerHTML = `
+      <div class="rail-panel">
+        <div class="rail-title">${isTrain ? "训练总结" : "面试结果"} · ${snaps.length} 份</div>
+        ${items}
+      </div>
+      <button class="rail-tab" id="rail-tab" title="结果速览">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
+             stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+        <span>结果 ${snaps.length}</span>
+      </button>`;
+    rail.querySelector("#rail-tab").addEventListener("click", () => rail.classList.toggle("open"));
+    rail.querySelectorAll(".rail-item").forEach(btn =>
+      btn.addEventListener("click", () => {
+        const b = Number(btn.dataset.boundary);
+        const panel = boxForBoundary(b);
+        if (!panel) return;
+        state.panelOverride.set(b, false);
+        panel.classList.remove("collapsed");
+        rail.classList.remove("open");
+        panel.scrollIntoView({ behavior: "smooth", block: "center" });
+      }));
+  }
+
+  function boxForBoundary(b) {
+    return document.querySelector(`.result[data-boundary="${b}"]`);
   }
 
   // 面试/训练结束后续聊：自然继续，AI 侧无感知，聊满轮数自动生成新结果
