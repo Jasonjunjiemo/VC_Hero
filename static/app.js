@@ -923,7 +923,9 @@
         state.panelOverride.set(b, false);
         panel.classList.remove("collapsed");
         rail.classList.remove("open");
-        panel.scrollIntoView({ behavior: "smooth", block: "center" });
+        // 滚动到评分区（头部：评级+分数），而非面板整体中心
+        (panel.querySelector(".panel-head") || panel)
+          .scrollIntoView({ behavior: "smooth", block: "start" });
       }));
   }
 
