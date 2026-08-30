@@ -4,6 +4,20 @@
 
 线上地址：http://152.136.60.146
 
+## 界面一览
+
+| AI 面试官主页 | AI 训练官主页 |
+|---|---|
+| ![主页·面试官](docs/screenshots/01-home-interview.png) | ![主页·训练官](docs/screenshots/02-home-training.png) |
+
+| 考试开始页 | 面试对话（深挖追问） |
+|---|---|
+| ![开始页](docs/screenshots/03-start-card.png) | ![面试对话](docs/screenshots/05-chat-answered.png) |
+
+| 面试结果（评级 + 五维评分 + 千字反馈） |
+|---|
+| ![面试结果](docs/screenshots/06-result.png) |
+
 ## 功能
 
 **AI 面试官（面试陪练）**
