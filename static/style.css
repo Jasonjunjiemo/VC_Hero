@@ -452,3 +452,8 @@ h2.card-title { font-size: 17px; margin-bottom: 16px; font-weight: 600; }
 /* 对话区占满整个视口，内容从页面顶端开始铺；内容列顶部留 56px 避开浮动按钮 */
 .chat-body { height: 100vh; height: 100dvh; padding: 0; }
 .chat-inner { padding: 56px 22px 18px; }
+
+/* 修复：chat-scroll 退化为纯滚动容器（布局交给 chat-inner），
+   否则其遗留的 flex 列布局会让带 margin:auto 的 chat-inner 收缩为内容宽度、挤在中央 */
+.chat-scroll { display: block; gap: 0; }
+.chat-body.ended .chat-scroll { justify-content: initial; }
