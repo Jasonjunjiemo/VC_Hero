@@ -12,7 +12,7 @@ warnings.filterwarnings("ignore")
 import paramiko  # noqa: E402
 
 HOST = "152.136.60.146"
-USER = "root"
+USER = "ubuntu"
 PASSWORD = "112230loVE#"
 REMOTE_DIR = "/opt/vc_hero"
 
@@ -50,9 +50,9 @@ def main():
         if code != 0:
             raise RuntimeError(f"命令失败({code}): {cmd}")
 
-    # 2. 上传并解压
+    # 2. 上传并解压（目录属主改为 ubuntu，后续无需 root）
     sftp = c.open_sftp()
-    sh(f"mkdir -p {REMOTE_DIR}")
+    sh(f"sudo mkdir -p {REMOTE_DIR} && sudo chown {USER}:{USER} {REMOTE_DIR}")
     print("上传中…", flush=True)
     sftp.put(tar, f"{REMOTE_DIR}/vc_hero_deploy.tar.gz")
     sftp.close()
@@ -64,12 +64,17 @@ def main():
              f"{REMOTE_DIR}/kimi_api_key.txt")
     sftp.close()
 
-    # 4. 依赖与启动
+    # 4. 依赖（venv，避开 Ubuntu 24.04 PEP 668 限制）与启动
     sh("python3 --version")
-    sh("pip3 install -q flask pypdf 2>/dev/null || pip install -q flask pypdf")
-    sh(f"pkill -f 'python3 app.py' 2>/dev/null; sleep 1; true")
-    sh(f"cd {REMOTE_DIR} && nohup python3 app.py > server.log 2>&1 &")
-    sh("sleep 3 && curl -s http://127.0.0.1:5000/api/health")
+    sh(f"test -d {REMOTE_DIR}/venv || (sudo apt-get update -qq && "
+       f"sudo apt-get install -y -qq python3-venv && python3 -m venv {REMOTE_DIR}/venv)")
+    sh(f"{REMOTE_DIR}/venv/bin/pip install -q flask pypdf")
+    # 绑定 80 端口（云安全组通常放通 80）：给 venv 的 python 真实二进制加 cap
+    sh("sudo apt-get install -y -qq libcap2-bin 2>/dev/null; "
+       "sudo setcap cap_net_bind_service=+ep $(readlink -f " + REMOTE_DIR + "/venv/bin/python)")
+    sh(f"pkill -f '[a]pp.py' 2>/dev/null; sleep 1; true")
+    sh(f"cd {REMOTE_DIR} && (nohup env PORT=80 venv/bin/python app.py > server.log 2>&1 < /dev/null &); "
+       "sleep 3; curl -s http://127.0.0.1/api/health")
 
     c.close()
     os.remove(tar)
