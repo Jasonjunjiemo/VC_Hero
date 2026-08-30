@@ -431,7 +431,18 @@ h2.card-title { font-size: 17px; margin-bottom: 16px; font-weight: 600; }
   background: transparent; border: none;
   pointer-events: none;   /* 栏本身不拦截任何内容 */
 }
-.chat-floatbar > * { pointer-events: auto; }
+.chat-floatbar > * {
+  pointer-events: auto;
+  /* 控件本身实心不透：白底 pill + 描边 + 轻投影，叠加在滚动内容上也不透 */
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 1px 5px rgba(23, 30, 48, .08);
+}
+.chat-floatbar .row { padding: 4px 6px; gap: 6px; }
+.chat-floatbar .user-btn { border: none; box-shadow: none; background: transparent; }
+.chat-floatbar > button.ghost { background: #fff; }
+.chat-floatbar > button.ghost:hover { background: #f0f2f8; }
 .chat-float-title {
   font-weight: 600; font-size: 14px; color: var(--ink-2);
   max-width: 40vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
