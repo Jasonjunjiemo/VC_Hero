@@ -53,18 +53,19 @@
     return s.started_at * 1000 + s.time_limit_min * 60000 - Date.now();
   }
 
-  // ---------- 顶栏 ----------
+  // ---------- 浮动控件栏（主页/设置页：无横条，透明控件浮在内容上方） ----------
   function topbarHtml(active) {
     const u = state.user;
     return `
-      <div class="topbar">
+      <div class="chat-floatbar">
         <div class="logo" id="logo"><span class="logo-mark">VC</span><span class="logo-text">Hero</span></div>
-        <div class="spacer"></div>
-        <button class="user-btn ${active === "settings" ? "on" : ""}" id="user-btn" title="个人信息设置">
-          <span class="user-avatar">${esc((u.username || "?")[0].toUpperCase())}</span>
-          <span>${esc(u.username)}</span>
-        </button>
-        <button class="ghost small" id="logout">退出</button>
+        <div class="row">
+          <button class="user-btn ${active === "settings" ? "on" : ""}" id="user-btn" title="个人信息设置">
+            <span class="user-avatar">${esc((u.username || "?")[0].toUpperCase())}</span>
+            <span>${esc(u.username)}</span>
+          </button>
+          <button class="ghost small" id="logout">退出</button>
+        </div>
       </div>`;
   }
 
@@ -82,14 +83,15 @@
     });
   }
 
-  // 未登录时的简易顶栏（右上角登录/注册）
+  // 未登录时的浮动控件（右上角登录/注册）
   function navTopbarHtml() {
     return `
-      <div class="topbar">
+      <div class="chat-floatbar">
         <div class="logo"><span class="logo-mark">VC</span><span class="logo-text">Hero</span></div>
-        <div class="spacer"></div>
-        <button class="ghost small" id="nav-login">登录</button>
-        <button class="small" id="nav-register">注册</button>
+        <div class="row">
+          <button class="ghost small" id="nav-login">登录</button>
+          <button class="small" id="nav-register">注册</button>
+        </div>
       </div>`;
   }
 
@@ -736,8 +738,8 @@
     app.innerHTML = `
       <div class="chat-floatbar">
         <button class="ghost small" id="back">‹ 返回</button>
-        <div class="chat-float-title" id="chat-title"></div>
         <div class="row">
+          <div class="chat-float-title" id="chat-title"></div>
           <div class="timer" id="timer"></div>
           <span id="finish-slot"></span>
         </div>
