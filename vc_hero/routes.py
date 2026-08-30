@@ -16,9 +16,17 @@ def _client():
     return current_app.extensions["kimi_client"]
 
 
+def token_from_cookie():
+    return request.cookies.get(config.SESSION_COOKIE, "")
+
+
+def token_user_id(token):
+    user = storage.get_token_user(token)
+    return user["id"] if user else None
+
+
 def current_user():
-    token = request.cookies.get(config.SESSION_COOKIE, "")
-    return storage.get_token_user(token)
+    return storage.get_token_user(token_from_cookie())
 
 
 def login_required(fn):

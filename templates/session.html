@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ title }} · VC Hero</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div id="app">
+  <div class="topbar">
+    <div class="back-btn" id="back">‹ 返回</div>
+    <div class="title chat-title">{{ name }}{% if kind == "training" %}<span class="badge active">训练</span>{% endif %}</div>
+    <div class="spacer"></div>
+    <div class="timer" id="timer">不限时</div>
+    <button class="ghost small" style="flex:none" id="finish-btn">{% if kind == "training" %}结束训练{% else %}结束面试{% endif %}</button>
+  </div>
+  <div class="chat-body" id="chat-body">
+    <div class="chat-scroll" id="chat-scroll">
+      {% for m in messages %}
+      <div class="msg {{ 'me' if m.role == 'candidate' else 'ai' }}">
+        <div class="avatar">{{ '我' if m.role == 'candidate' else 'VC' }}</div>
+        <div class="bubble">{{ m.content }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    <div id="chat-foot">
+      <div class="composer" id="composer">
+        <textarea id="answer-input" rows="2" placeholder="输入你的回答…"></textarea>
+        <div class="composer-foot">
+          <span class="composer-hint">Enter 发送 · Ctrl+Enter 换行</span>
+          <button id="send-btn" class="send-circle" title="发送" aria-label="发送">
+            <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor"
+                 stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+          </button>
+        </div>
+      </div>
+      <div id="action-err"></div>
+    </div>
+  </div>
+</div>
+<script>
+window.__BOOT_SESSION__ = {
+  kind: {{ kind | tojson }},
+  name: {{ name | tojson }},
+  messages: {{ messages_json | safe }}
+};
+</script>
+<script src="/static/app.js"></script>
+</body>
+</html>

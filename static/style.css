@@ -121,7 +121,8 @@ h2.card-title { font-size: 17px; margin-bottom: 16px; font-weight: 600; }
 
 /* ---------- 页面骨架 ---------- */
 .page { flex: 1; width: 100%; max-width: 1060px; margin: 0 auto; padding: 28px 22px 70px; display: flex; flex-direction: column; gap: 22px; }
-.page-head { display: flex; align-items: center; gap: 14px; margin-bottom: -6px; }
+.page-head { display: flex; align-items: center; justify-content: center; position: relative; margin-bottom: -6px; }
+.page-head .small { position: absolute; left: 0; }
 .page-title { font-size: 22px; font-weight: 700; }
 .section-card { margin-top: 4px; }
 
@@ -168,10 +169,10 @@ h2.card-title { font-size: 17px; margin-bottom: 16px; font-weight: 600; }
 .seg-tab:hover { background: transparent; color: var(--ink); }
 .seg-tab.on { background: #fff; color: var(--brand); font-weight: 700; }
 .tab-content { display: flex; flex-direction: column; gap: 22px; }
-/* 整页滑动：滑出内容完全移出屏幕，新内容从对侧整页滑入 */
+/* 整页滑动：按一下只往一个方向走——点右边的 tab，旧内容向左滑出、新内容从右侧滑入 */
 #tab-host { overflow: hidden; }
-.slide-out-l { animation: slide-out-l .24s ease forwards; }
-.slide-out-r { animation: slide-out-r .24s ease forwards; }
+.slide-out-l { animation: slide-out-l .3s ease forwards; }
+.slide-out-r { animation: slide-out-r .3s ease forwards; }
 .slide-in-l { animation: slide-in-l .3s ease; }
 .slide-in-r { animation: slide-in-r .3s ease; }
 @keyframes slide-out-l {
@@ -189,11 +190,12 @@ h2.card-title { font-size: 17px; margin-bottom: 16px; font-weight: 600; }
   to { transform: translateX(0); opacity: 1; }
 }
 
-/* 训练官 hero：独立配色（墨绿），布局与白色子图位置保持一致 */
-.hero.training { background: linear-gradient(125deg, #0b2b23 0%, #11584a 55%, #159a6c 100%); }
-.hero.training .hero-eyebrow { color: #b9ecd6; border-color: rgba(185, 236, 214, .45); }
-.hero.training .hero-text p { color: #c8ecdc; }
-.hero.training::after { background: rgba(21, 154, 108, .3); }
+/* 训练官 hero：淡蓝配色，布局与白色子图位置保持一致 */
+.hero.training { background: linear-gradient(125deg, #274b7e 0%, #4a7fd4 60%, #7fafe8 100%); }
+.hero.training .hero-eyebrow { color: #dcebff; border-color: rgba(220, 235, 255, .5); }
+.hero.training .hero-text p { color: #dbe9fb; }
+.hero.training::after { background: rgba(127, 175, 232, .35); }
+.hero.training::before { background: rgba(255, 255, 255, .08); }
 
 /* 文件选择加号按钮（统一风格，替代原生文件按钮） */
 .plus-btn {
@@ -394,3 +396,22 @@ h2.card-title { font-size: 17px; margin-bottom: 16px; font-weight: 600; }
   font-size: 14.5px; line-height: 1.85; color: var(--ink);
   padding-left: 16px; border-left: 3px solid var(--brand);
 }
+
+/* ---------- 细滚动条 ---------- */
+.chat-scroll, .modal, .start-wrap, .tab-content { scrollbar-width: thin; scrollbar-color: #d3d8e6 transparent; }
+.chat-scroll::-webkit-scrollbar, .modal::-webkit-scrollbar, .start-wrap::-webkit-scrollbar { width: 6px; height: 6px; }
+.chat-scroll::-webkit-scrollbar-thumb, .modal::-webkit-scrollbar-thumb, .start-wrap::-webkit-scrollbar-thumb {
+  background: #d3d8e6; border-radius: 3px;
+}
+.chat-scroll::-webkit-scrollbar-track, .modal::-webkit-scrollbar-track, .start-wrap::-webkit-scrollbar-track { background: transparent; }
+
+/* ---------- 悬浮顶栏：不占文档流，不再挤压对话可见区域 ---------- */
+.topbar {
+  position: fixed; top: 12px; left: 50%; transform: translateX(-50%);
+  width: min(880px, calc(100vw - 32px));
+  height: 52px; padding: 0 14px;
+  border: 1px solid var(--line); border-radius: 14px;
+  background: rgba(255, 255, 255, .92); backdrop-filter: blur(12px);
+}
+.page { padding-top: 82px; }
+.chat-body { height: 100vh; height: 100dvh; padding-top: 12px; }

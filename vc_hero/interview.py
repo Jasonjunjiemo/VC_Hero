@@ -99,7 +99,7 @@ def _history(s):
 
 
 def start_session(client, user_id, session_id):
-    """开始面试：生成第一个问题。"""
+    """开始面试：同步生成第一个问题（HTTP 响应直接携带，前端无需轮询）。"""
     with _session_lock(session_id):
         s = _get_active(user_id, session_id)
         if s["status"] == "scored":
@@ -111,14 +111,7 @@ def start_session(client, user_id, session_id):
         s["status"] = "active"
         s["started_at"] = time.time()
         storage.save_session(s)
-        try:
-            return _ask_next(client, s)
-        except Exception:
-            # 首个问题生成失败：回滚为未开始，允许重试
-            s["status"] = "created"
-            s["started_at"] = None
-            storage.save_session(s)
-            raise
+        return _ask_next(client, s)
 
 
 def answer(client, user_id, session_id, content):

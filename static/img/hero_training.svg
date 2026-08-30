@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 360" width="480" height="360">
+  <rect x="0" y="0" width="480" height="360" rx="16" fill="#eaf3fd"/>
+  <circle cx="105" cy="82" r="44" fill="#4a7fd4" opacity="0.10"/>
+  <circle cx="398" cy="288" r="56" fill="#4a7fd4" opacity="0.08"/>
+
+  <!-- 训练官（左侧，沉稳深蓝） -->
+  <circle cx="142" cy="140" r="36" fill="#2c3a8c"/>
+  <path d="M86 232c0-32 25-56 56-56s56 24 56 56v10H86z" fill="#2c3a8c"/>
+  <circle cx="130" cy="136" r="4" fill="#fff"/>
+  <circle cx="154" cy="136" r="4" fill="#fff"/>
+  <path d="M130 154q12 7 24 0" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round"/>
+
+  <!-- 学员（右侧，浅蓝） -->
+  <circle cx="352" cy="176" r="28" fill="#7fafe8"/>
+  <path d="M308 252c0-26 19-44 44-44s44 18 44 44v8H308z" fill="#7fafe8"/>
+
+  <!-- 教学气泡（白，气泡与尾巴合并单一路径） -->
+  <path d="M203 44 H325 A13 13 0 0 1 338 57 V79 A13 13 0 0 1 325 92 H240 L212 112 L228 92 H203 A13 13 0 0 1 190 79 V57 A13 13 0 0 1 203 44 Z"
+        fill="#ffffff" stroke="#d5e3f5" stroke-width="1.5"/>
+  <rect x="206" y="58" width="92" height="8" rx="4" fill="#4a7fd4" opacity="0.6"/>
+  <rect x="206" y="74" width="60" height="8" rx="4" fill="#c2d7f0"/>
+
+  <!-- 学员作答气泡（蓝） -->
+  <path d="M283 116 H361 A12 12 0 0 1 373 128 V146 A12 12 0 0 1 361 158 H325 L349 178 L329 158 H283 A12 12 0 0 1 271 146 V128 A12 12 0 0 1 283 116 Z"
+        fill="#4a7fd4"/>
+  <rect x="287" y="130" width="70" height="7" rx="3.5" fill="#ffffff" opacity="0.92"/>
+  <rect x="287" y="143" width="46" height="7" rx="3.5" fill="#ffffff" opacity="0.55"/>
+
+  <!-- 训练进度卡 -->
+  <rect x="168" y="216" width="150" height="86" rx="12" fill="#ffffff" stroke="#d5e3f5" stroke-width="1.5"/>
+  <rect x="184" y="234" width="56" height="9" rx="4.5" fill="#2c3a8c"/>
+  <rect x="184" y="234" width="46" height="9" rx="4.5" fill="#4a7fd4"/>
+  <rect x="184" y="254" width="56" height="9" rx="4.5" fill="#e3edf9"/>
+  <rect x="184" y="254" width="30" height="9" rx="4.5" fill="#4a7fd4"/>
+  <rect x="184" y="274" width="56" height="9" rx="4.5" fill="#e3edf9"/>
+  <rect x="184" y="274" width="18" height="9" rx="4.5" fill="#4a7fd4"/>
+  <path d="M262 266l8 8 16-18" fill="none" stroke="#16a06a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

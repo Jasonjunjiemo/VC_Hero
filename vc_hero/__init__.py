@@ -1,7 +1,8 @@
 """VC_Hero 应用工厂。"""
+import json
 import os
 
-from flask import Flask, send_from_directory
+from flask import Flask, render_template, send_from_directory
 
 from . import config, routes, storage
 from .kimi import KimiClient
@@ -17,7 +18,8 @@ def create_app():
     if not api_key:
         raise RuntimeError(f"缺少 Kimi API key 文件: {config.KEY_FILE}")
 
-    app = Flask(__name__, static_folder=config.STATIC_DIR, static_url_path="/static")
+    app = Flask(__name__, static_folder=config.STATIC_DIR, static_url_path="/static",
+                template_folder=os.path.join(config.BASE_DIR, "templates"))
     app.extensions["kimi_client"] = KimiClient(api_key, RateLimiter())
     app.register_blueprint(routes.bp)
 
@@ -27,7 +29,20 @@ def create_app():
 
     @app.route("/session/<session_id>")
     def session_page(session_id):
-        # 会话页：单页应用按 URL 中的会话 id 渲染（支持新标签页打开）
+        # 已开始的会话：服务端渲染首屏（顶栏、消息、输入框一次到位）
+        token = routes.token_from_cookie()
+        s = storage.get_session(routes.token_user_id(token), session_id) if token else None
+        if (s and s.get("kind", "interview") in ("interview", "training")
+                and s["status"] == "active" and s["messages"]):
+            return render_template(
+                "session.html",
+                title=s["name"],
+                kind=s.get("kind", "interview"),
+                name=s["name"],
+                messages=s["messages"],
+                messages_json=json.dumps(s["messages"], ensure_ascii=False),
+            )
+        # 未开始/无消息：返回应用入口，由前端渲染开始卡片
         return send_from_directory(config.STATIC_DIR, "index.html")
 
     @app.route("/<path:filename>")

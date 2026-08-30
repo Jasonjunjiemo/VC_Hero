@@ -50,6 +50,7 @@ def _next(client, s):
 
 
 def start_session(client, user_id, session_id):
+    """开始训练：同步生成第一条消息（HTTP 响应直接携带）。"""
     with _session_lock(session_id):
         s = _get(user_id, session_id)
         _check_kind(s)
@@ -60,13 +61,7 @@ def start_session(client, user_id, session_id):
         s["status"] = "active"
         s["started_at"] = time.time()
         storage.save_session(s)
-        try:
-            return _next(client, s)
-        except Exception:
-            s["status"] = "created"
-            s["started_at"] = None
-            storage.save_session(s)
-            raise
+        return _next(client, s)
 
 
 def answer(client, user_id, session_id, content):

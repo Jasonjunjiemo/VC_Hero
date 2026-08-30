@@ -148,7 +148,7 @@
                    <button class="ink" id="hero-register">免费注册</button>`}
             </div>
           </div>
-          <div class="hero-art"><img src="/static/img/hero.svg" alt="AI 面试示意"></div>
+          <div class="hero-art"><img src="/static/img/${isTrain ? "hero_training.svg" : "hero.svg"}" alt="AI 面试示意"></div>
         </div>
         ${sess}
         <div class="features">
@@ -199,15 +199,15 @@
 
   const wait = (ms) => new Promise(r => setTimeout(r, ms));
 
-  // tab 切换：整页滑出再滑入，顶栏与切换器保持不动（无闪烁）
+  // tab 切换：按一下只往一个方向走——点右边的 tab 内容整体左移，点左边的 tab 内容整体右移
   async function switchTab(target) {
     if (state.tab === target) return;
     const host = q("#tab-host");
-    const goingRight = target === "training";
+    const goingRight = target === "training";   // 面试在左、训练在右
     if (state.user) {
       host.classList.add(goingRight ? "slide-out-l" : "slide-out-r");
       try { await loadSessions(); } catch (e) { /* 列表刷新失败不阻塞切换 */ }
-      await wait(240);
+      await wait(280);
     }
     state.tab = target;
     app.querySelectorAll(".seg-tab").forEach(b =>
@@ -217,7 +217,7 @@
       host.innerHTML = tabContentHtml();
       if (state.user) host.classList.add(goingRight ? "slide-in-r" : "slide-in-l");
       bindTabContent();
-      if (state.user) setTimeout(() => host.classList.remove("slide-in-l", "slide-in-r"), 340);
+      if (state.user) setTimeout(() => host.classList.remove("slide-in-l", "slide-in-r"), 360);
     }
   }
 
@@ -886,7 +886,13 @@
         </div>
       </div>
       <div id="action-err">${state.actionError ? `<div class="err-banner">${esc(state.actionError)}</div>` : ""}</div>`;
+    bindComposer(foot);
+  }
+
+  // 绑定输入区：Enter 发送、Ctrl+Enter 换行、思考中限发提示
+  function bindComposer(foot) {
     const ta = foot.querySelector("#answer-input");
+    if (!ta) return;
     const send = () => {
       if (state.busy) { showToast("考官正在思考，请稍候再发送"); return; }
       const v = ta.value.trim();
@@ -897,7 +903,6 @@
     };
     foot.querySelector("#send-btn").addEventListener("click", send);
     ta.addEventListener("keydown", (e) => {
-      // Enter 发送；Ctrl/Cmd/Shift+Enter 换行
       if (e.key === "Enter" && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
         e.preventDefault();
         send();
@@ -1005,6 +1010,35 @@
 
   // ---------- 启动路由 ----------
   (async function init() {
+    // 服务端渲染的会话首屏：直接接管已有 DOM，不再二次渲染
+    if (window.__BOOT_SESSION__) {
+      const b = window.__BOOT_SESSION__;
+      try {
+        state.user = (await api("/me")).user;
+      } catch (e) {
+        location.href = "/";
+        return;
+      }
+      state.view = "chat";
+      state.current = { id: location.pathname.match(/^\/session\/([a-zA-Z0-9]+)/)[1],
+                        kind: b.kind, name: b.name, messages: b.messages,
+                        status: "active", time_limit_min: null };
+      state.atBottom = true;
+      q("#back").addEventListener("click", () => { location.href = "/"; });
+      q("#finish-btn").addEventListener("click", async () => {
+        if (!confirm(b.kind === "training" ? "确定结束训练？将生成训练总结。"
+                                           : "确定结束面试？结束后将给出评级和反馈。")) return;
+        await sendAction("/finish", {});
+      });
+      const box = q("#chat-scroll");
+      box.scrollTop = box.scrollHeight;
+      box.addEventListener("scroll", () => {
+        state.atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 90;
+      });
+      bindComposer(q("#chat-foot"));
+      return;
+    }
+
     const m = location.pathname.match(/^\/session\/([a-zA-Z0-9]+)/);
     let user = null;
     try {
