@@ -15,8 +15,10 @@ MAX_SESSIONS_PER_USER = 10
 TOKEN_TTL_SECONDS = 7 * 24 * 3600  # 登录态有效期
 SESSION_COOKIE = "vc_session"
 
-# 面试问题数量档位 -> 简历环节问题数
+# 面试问题数量档位 -> 简历环节问题数（仅系统内部用于流程控制，不告知 AI）
 QUESTION_LEVELS = {"low": 3, "medium": 5, "high": 8}
+# 档位在提示词中的描述（不出现具体数字）
+LEVEL_INTENSITY = {"low": "较少", "medium": "适中", "high": "较多"}
 TASK_COUNT_MIN = 1
 TASK_COUNT_MAX = 5
 TIME_LIMIT_MAX_MIN = 180

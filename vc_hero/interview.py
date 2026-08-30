@@ -46,10 +46,12 @@ def _build_system_prompt(s, resume_text):
 
     if s["phase"] == "cv":
         phase_rules = prompts.load_prompt("CV_Evaluation_and_Questioning_Rules")
+        intensity = config.LEVEL_INTENSITY[s["level"]]
         phase_desc = (
-            f"当前处于阶段一【简历问答】。共 {s['cv_total']} 个问题，"
-            f"已完成 {s['cv_asked']} 个。请针对候选人简历继续提出下一个问题，"
-            f"深入挖掘最值得追问的经历，不要泛泛而谈。"
+            f"当前处于阶段一【简历问答】，本阶段提问数量{intensity}。"
+            "请针对候选人简历继续提出下一个问题，深入挖掘最值得追问的经历，不要泛泛而谈。"
+            "请根据整体节奏自然把控深度，接近本阶段尾声时在合适的问题后自然收尾，"
+            "不要生硬地宣布阶段结束，也不要透露具体的题目数量。"
         )
         scenario = ""
     else:
@@ -57,14 +59,14 @@ def _build_system_prompt(s, resume_text):
         task_name, task_text = s["tasks"][s["task_index"]]
         if s["task_turns"] == 0:
             phase_desc = (
-                f"当前处于阶段二【行业 Know-how 场景任务】，第 {s['task_index'] + 1}/{len(s['tasks'])} 个任务"
+                f"当前进入阶段二【行业 Know-how 场景任务】的第 {s['task_index'] + 1}/{len(s['tasks'])} 个任务"
                 f"（{task_name}）。请自然地向候选人布置以下任务场景并提出第一个问题：\n{task_text}"
             )
         else:
             phase_desc = (
-                f"当前处于阶段二【行业 Know-how 场景任务】，任务（{task_name}）进行中，"
-                f"已完成 {s['task_turns']}/{config.TASK_TURNS_PER_TASK} 个回合。"
-                f"请根据候选人上一轮回答继续深入追问同一个场景。"
+                f"当前处于阶段二【行业 Know-how 场景任务】，任务（{task_name}）进行中。"
+                "请根据候选人上一轮回答继续深入追问同一个场景，"
+                "接近本任务尾声时在合适的问题后自然收束，不要生硬地宣布结束。"
             )
         scenario = task_text
 
@@ -96,7 +98,14 @@ def start_session(client, user_id, session_id):
         s["status"] = "active"
         s["started_at"] = time.time()
         storage.save_session(s)
-        return _ask_next(client, s)
+        try:
+            return _ask_next(client, s)
+        except Exception:
+            # 首个问题生成失败：回滚为未开始，允许重试
+            s["status"] = "created"
+            s["started_at"] = None
+            storage.save_session(s)
+            raise
 
 
 def answer(client, user_id, session_id, content):

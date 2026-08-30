@@ -25,6 +25,11 @@ def create_app():
     def index():
         return send_from_directory(config.STATIC_DIR, "index.html")
 
+    @app.route("/session/<session_id>")
+    def session_page(session_id):
+        # 会话页：单页应用按 URL 中的会话 id 渲染（支持新标签页打开）
+        return send_from_directory(config.STATIC_DIR, "index.html")
+
     @app.route("/<path:filename>")
     def static_files(filename):
         if filename.startswith("api/"):

@@ -31,6 +31,7 @@ button {
   font: inherit; cursor: pointer; border: none; border-radius: 8px;
   padding: 8px 18px; background: var(--brand); color: #fff;
   transition: background .15s;
+  white-space: nowrap; flex: none; /* 按钮文字不允许换行 */
 }
 button:hover { background: var(--brand-dark); }
 button:disabled { opacity: .5; cursor: not-allowed; }
@@ -90,6 +91,41 @@ h2.card-title { font-size: 16px; margin-bottom: 14px; font-weight: 600; }
 .topbar .logo span { color: var(--brand); }
 .topbar .who { color: var(--ink-3); font-size: 13px; }
 .topbar .spacer { flex: 1; }
+
+/* 右上角用户名入口 */
+.user-btn {
+  display: flex; align-items: center; gap: 8px;
+  background: transparent; color: var(--ink); font-weight: 500; padding: 5px 10px;
+}
+.user-btn:hover { background: #f2f3f5; }
+.user-btn.on { background: var(--brand-soft); color: var(--brand); }
+.user-avatar {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--brand); color: #fff; font-size: 13px; font-weight: 700;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.back-btn { font-weight: 600; cursor: pointer; color: var(--ink-2); padding: 4px 8px; border-radius: 8px; }
+.back-btn:hover { background: #f2f3f5; color: var(--ink); }
+
+/* ---------- 网站介绍主页 ---------- */
+.hero {
+  display: grid; grid-template-columns: 1.15fr 1fr; gap: 28px; align-items: center;
+  background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow);
+  padding: 40px 44px;
+}
+.hero-text h1 { font-size: 30px; line-height: 1.35; margin-bottom: 14px; }
+.hero-text p { color: var(--ink-2); max-width: 520px; }
+.hero-img { width: 100%; max-width: 420px; justify-self: center; }
+@media (max-width: 760px) {
+  .hero { grid-template-columns: 1fr; padding: 26px; }
+  .hero-text h1 { font-size: 24px; }
+}
+.features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+@media (max-width: 760px) { .features { grid-template-columns: 1fr; } }
+.feature { text-align: left; }
+.feature img { width: 56px; height: 56px; margin-bottom: 12px; }
+.feature h3 { font-size: 16px; margin-bottom: 8px; }
+.feature p { color: var(--ink-2); font-size: 14px; }
 
 /* ---------- 主页 ---------- */
 .page { flex: 1; width: 100%; max-width: 1020px; margin: 0 auto; padding: 24px 20px 60px; display: flex; flex-direction: column; gap: 18px; }
