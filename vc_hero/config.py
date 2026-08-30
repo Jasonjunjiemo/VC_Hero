@@ -15,10 +15,8 @@ MAX_SESSIONS_PER_USER = 10
 TOKEN_TTL_SECONDS = 7 * 24 * 3600  # 登录态有效期
 SESSION_COOKIE = "vc_session"
 
-# 面试问题数量档位 -> 简历环节问题数（仅系统内部用于流程控制，不告知 AI）
-QUESTION_LEVELS = {"low": 3, "medium": 5, "high": 8}
-# 档位在提示词中的描述（不出现具体数字）
-LEVEL_INTENSITY = {"low": "较少", "medium": "适中", "high": "较多"}
+# 问题数量档位 -> (目标下限, 目标上限, 安全上限)；区间内具体题数由模型自行决定
+LEVEL_RANGES = {"low": (10, 14, 18), "medium": (18, 22, 28), "high": (35, 45, 55)}
 TASK_COUNT_MIN = 1
 TASK_COUNT_MAX = 5
 TIME_LIMIT_MAX_MIN = 180
@@ -28,6 +26,9 @@ TASK_TURNS_PER_TASK = 3  # 每个 task：场景引入 + 2 轮追问
 KIMI_BASE_URL = "https://api.moonshot.cn/v1"
 KIMI_MODEL = "kimi-k3"
 KIMI_TIMEOUT = 180
+# kimi-k3 推理耗时过长，关闭推理（此时 API 要求 temperature=0.6）
+KIMI_THINKING = {"type": "disabled"}
+KIMI_TEMPERATURE = 0.6
 MAX_REPLY_TOKENS = 2000
 MAX_SCORING_TOKENS = 8000
 

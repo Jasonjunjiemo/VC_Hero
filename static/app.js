@@ -1,6 +1,7 @@
 /* VC_Hero 单页应用
  * 视图：landing（网站介绍主页）/ auth / settings（个人信息+简历）/ chat（面试）
  * 会话通过 /session/<id> 路由渲染，从列表进入时在新标签页打开。
+ * 聊天交互：Enter 发送、Ctrl+Enter 换行；发送后立即上屏并显示考官"思考中"气泡。
  */
 (function () {
   "use strict";
@@ -14,6 +15,7 @@
     view: "landing",      // landing / auth / settings / chat
     busy: false,
     actionError: "",
+    draft: "",
     timerId: null,
   };
 
@@ -52,7 +54,7 @@
     const u = state.user;
     return `
       <div class="topbar">
-        <div class="logo" id="logo">VC <span>Hero</span></div>
+        <div class="logo" id="logo"><span class="logo-mark">VC</span><span class="logo-text">Hero</span></div>
         <div class="spacer"></div>
         <button class="user-btn ${active === "settings" ? "on" : ""}" id="user-btn" title="个人信息设置">
           <span class="user-avatar">${esc((u.username || "?")[0].toUpperCase())}</span>
@@ -66,7 +68,6 @@
     q("#logo").addEventListener("click", () => { location.href = "/"; });
     q("#user-btn").addEventListener("click", () => {
       if (active === "settings") return;
-      history.pushState({ view: "settings" }, "", "/");
       renderSettings();
     });
     q("#logout").addEventListener("click", async () => {
@@ -80,7 +81,7 @@
   function landingBodyHtml() {
     const logged = !!state.user;
     const sess = logged ? `
-      <div class="card" style="margin-top:18px">
+      <div class="card section-card">
         <div class="spread">
           <h2 class="card-title" style="margin:0">面试会话 <span class="muted">(${state.sessions.length}/10)</span></h2>
           <button id="new-session">新建会话</button>
@@ -91,16 +92,17 @@
       <div class="page">
         <div class="hero">
           <div class="hero-text">
+            <div class="hero-eyebrow">AI 面试陪练 · 早期 VC Deal Sourcing</div>
             <h1>在真正的面试之前，<br>先在这里输一次</h1>
             <p>VC Hero 是一位 AI 虚拟面试官，模拟早期投资机构 Deal Sourcing 团队的真实面试：先深挖你的简历，再把你放进真实的找人、判断、取舍场景，结束后给出 A-E 评级和具体反馈。</p>
-            <div class="row" style="margin-top:16px">
+            <div class="row" style="margin-top:20px">
               ${logged
                 ? `<button id="hero-new">立即开始模拟面试</button>`
                 : `<button id="hero-login">登录</button>
                    <button class="ghost" id="hero-register">免费注册</button>`}
             </div>
           </div>
-          <img class="hero-img" src="/static/img/hero.svg" alt="AI 面试示意">
+          <div class="hero-art"><img src="/static/img/hero.svg" alt="AI 面试示意"></div>
         </div>
         <div class="features">
           <div class="feature card">
@@ -155,7 +157,7 @@
     app.innerHTML = `
       <div class="auth-wrap">
         <div class="card auth-card">
-          <div class="auth-logo">VC <span>Hero</span></div>
+          <div class="auth-logo"><span class="logo-mark">VC</span> Hero</div>
           <div class="auth-sub">AI 虚拟面试官 · 早期 VC Deal Sourcing 面试陪练</div>
           <div class="auth-tabs">
             <button class="${mode === "login" ? "on" : ""}" data-tab="login">登录</button>
@@ -201,8 +203,12 @@
 
     app.innerHTML = topbarHtml("settings") + `
       <div class="page" style="max-width:820px">
+        <div class="page-head">
+          <button class="ghost small" id="settings-back">‹ 返回主页</button>
+          <h1 class="page-title">个人信息设置</h1>
+        </div>
         <div class="card">
-          <h2 class="card-title">个人信息</h2>
+          <h2 class="card-title">基本信息</h2>
           <form class="profile-form" id="profile-form">
             <input name="name" placeholder="姓名" value="${esc(p.name)}">
             <input name="org" placeholder="学校 / 公司" value="${esc(p.org)}">
@@ -227,6 +233,7 @@
       </div>`;
 
     bindTopbar("settings");
+    q("#settings-back").addEventListener("click", () => { location.href = "/"; });
     q("#profile-form").addEventListener("submit", async (e) => {
       e.preventDefault();
       const body = Object.fromEntries(new FormData(e.target).entries());
@@ -305,13 +312,13 @@
         </div>
         <button class="ghost small" style="flex:none" data-rename="${s.id}">重命名</button>
         <button class="danger" style="flex:none" data-del-session="${s.id}">删除</button>
-        <button class="small" style="flex:none" data-enter="${s.id}" data-newtab="1">
+        <button class="small" style="flex:none" data-enter="${s.id}">
           ${s.status === "scored" ? "查看结果" : s.status === "active" ? "继续面试" : "开始面试"}
         </button>
       </div>`).join("");
 
     box.querySelectorAll("[data-enter]").forEach(b =>
-      b.addEventListener("click", () => openSessionTab(b.dataset.enter)));
+      b.addEventListener("click", () => window.open("/session/" + b.dataset.enter, "_blank")));
     box.querySelectorAll("[data-rename]").forEach(b =>
       b.addEventListener("click", () => renameSession(b.dataset.rename)));
     box.querySelectorAll("[data-del-session]").forEach(b =>
@@ -320,10 +327,6 @@
         await api("/sessions/" + b.dataset.delSession, { method: "DELETE" });
         renderHome();
       }));
-  }
-
-  function openSessionTab(id) {
-    window.open("/session/" + id, "_blank");
   }
 
   async function renameSession(id) {
@@ -352,9 +355,9 @@
           <div class="row3">
             <div><label>问题数量</label>
               <select name="level">
-                <option value="low">低</option>
-                <option value="medium" selected>中</option>
-                <option value="high">高</option>
+                <option value="low">低 · 约10-14题</option>
+                <option value="medium" selected>中 · 约18-22题</option>
+                <option value="high">高 · 约35-45题</option>
               </select>
             </div>
             <div><label>任务数量</label>
@@ -398,7 +401,6 @@
       try {
         const d = await api("/sessions", { method: "POST", body: JSON.stringify(body) });
         mask.remove();
-        // 新标签页立即打开会话界面
         window.open("/session/" + d.session.id, "_blank");
         renderHome();
       } catch (err) {
@@ -424,16 +426,16 @@
     state.busy = false;
     state.actionError = "";
 
-    history.replaceState({ view: "chat" }, "", "/session/" + sessionId);
+    history.replaceState(null, "", "/session/" + sessionId);
     app.innerHTML = `
       <div class="topbar">
         <div class="back-btn" id="back">‹ 返回</div>
-        <div class="title" style="font-weight:600">${esc(s.name)}</div>
+        <div class="title chat-title">${esc(s.name)}</div>
         <div class="spacer"></div>
         <div class="timer" id="timer"></div>
         ${s.status !== "scored" ? `<button class="ghost small" style="flex:none" id="finish-btn">结束面试</button>` : ""}
       </div>
-      <div class="chat-page">
+      <div class="chat-body" id="chat-body">
         <div class="chat-scroll" id="chat-scroll"></div>
         <div id="chat-foot"></div>
       </div>`;
@@ -478,54 +480,100 @@
         <div class="avatar">${m.role === "candidate" ? "我" : "VC"}</div>
         <div class="bubble">${esc(m.content)}</div>
       </div>`).join("");
+    if (state.busy) appendThinking(box);
     box.scrollTop = box.scrollHeight;
+  }
+
+  function appendThinking(box) {
+    box.insertAdjacentHTML("beforeend", `
+      <div class="msg ai" id="thinking-msg">
+        <div class="avatar">VC</div>
+        <div class="bubble"><span class="dots"><i></i><i></i><i></i></span></div>
+      </div>`);
   }
 
   function renderChatFoot() {
     const foot = q("#chat-foot");
     if (!foot || !state.current) return;
     const s = state.current;
-    if (s.status === "scored") { foot.innerHTML = resultHtml(s.result); return; }
-    if (state.busy) {
-      foot.innerHTML = `<div class="typing">考官正在思考（回复经过多轮自检，可能需要一两分钟）…</div>`;
+    if (s.status === "scored") {
+      foot.innerHTML = "";
+      q("#chat-body").classList.add("ended");
+      const box = q("#chat-scroll");
+      if (box && !box.querySelector(".result")) box.insertAdjacentHTML("beforeend", resultHtml(s.result));
       return;
     }
     if (s.status === "created") {
+      if (state.busy) {
+        // 已开始：隐藏开始卡片，对话界面全屏，思考气泡在消息流中
+        foot.innerHTML = "";
+        return;
+      }
+      // 考试开始页：信息 + 居中显眼的开始按钮
       foot.innerHTML = `
-        <div class="chat-input">
-          <div style="flex:1;text-align:center" class="muted">准备好后开始面试，考官会基于你的简历提出第一个问题</div>
-          <button id="start-btn" style="flex:none">开始面试</button>
-        </div>
-        <div id="action-err">${state.actionError ? `<div class="err-banner">${esc(state.actionError)}</div>` : ""}`;
-      foot.querySelector("#start-btn").addEventListener("click", () => sendAction("/start", {}));
+        <div class="start-wrap">
+          <div class="card start-card">
+            <div class="start-eyebrow">模拟面试</div>
+            <h2>${esc(s.name)}</h2>
+            <div class="chips">
+              <span class="chip">${esc(s.resume_name)}</span>
+              <span class="chip">问题约 ${s.cv_target_min}-${s.cv_target_max} 题</span>
+              <span class="chip">${s.task_count} 个场景任务</span>
+              <span class="chip">${s.time_limit_min ? "限时 " + s.time_limit_min + " 分钟" : "不限时"}</span>
+            </div>
+            <ul class="start-rules">
+              <li>面试分两部分：先围绕你的简历深挖问答，再进入真实 Deal Sourcing 场景任务</li>
+              <li>一问一答：考官提问后你作答一次，考官再继续</li>
+              <li>过程中考官不会评价你的回答，反馈在结束后统一给出</li>
+              <li>面试结束或到时后，考官会给出 A-E 评级与具体反馈</li>
+            </ul>
+            <button id="start-btn" class="big-btn">开始面试</button>
+            <div id="action-err">${state.actionError ? `<div class="err-banner">${esc(state.actionError)}</div>` : ""}</div>
+          </div>
+        </div>`;
+      const btn = foot.querySelector("#start-btn");
+      if (btn) btn.addEventListener("click", () => sendAction("/start", {}));
       return;
     }
-    // 进行中：轮到考生
+    // 进行中：轮到考生（思考中保留输入框，仅禁用，避免界面跳动）
     foot.innerHTML = `
       <div class="chat-input">
-        <textarea id="answer-input" placeholder="输入你的回答，提交后考官会继续提问…"></textarea>
-        <button id="send-btn" style="flex:none">提交回答</button>
+        <textarea id="answer-input" placeholder="输入你的回答，Enter 发送，Ctrl+Enter 换行…"
+          ${state.busy ? "disabled" : ""}>${state.draft || ""}</textarea>
+        <button id="send-btn" style="flex:none" ${state.busy ? "disabled" : ""}>发送</button>
       </div>
-      <div id="action-err">${state.actionError ? `<div class="err-banner">${esc(state.actionError)}</div>` : ""}`;
+      <div id="action-err">${state.actionError ? `<div class="err-banner">${esc(state.actionError)}</div>` : ""}</div>`;
     const ta = foot.querySelector("#answer-input");
     const send = () => {
       const v = ta.value.trim();
-      if (!v) return;
-      sendAction("/answer", { content: v });
+      if (!v || state.busy) return;
+      state.draft = "";
+      sendAction("/answer", { content: v }, { optimistic: v });
     };
     foot.querySelector("#send-btn").addEventListener("click", send);
     ta.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) send();
+      // Enter 发送；Ctrl/Cmd/Shift+Enter 换行
+      if (e.key === "Enter" && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
+        e.preventDefault();
+        send();
+      }
     });
-    ta.focus();
+    ta.addEventListener("input", () => { state.draft = ta.value; });
+    if (!state.busy) ta.focus();
   }
 
-  async function sendAction(action, body) {
+  async function sendAction(action, body, opts) {
+    opts = opts || {};
     if (state.busy || !state.current) return;
+    const sid = state.current.id;
     state.busy = true;
     state.actionError = "";
+    if (opts.optimistic) {
+      state.current.messages.push({ role: "candidate", content: opts.optimistic,
+                                    ts: Date.now() / 1000 });
+    }
+    renderMessages();
     renderChatFoot();
-    const sid = state.current.id;
     try {
       const d = await api("/sessions/" + sid + action, {
         method: "POST", body: JSON.stringify(body),
@@ -539,7 +587,9 @@
     } catch (err) {
       state.busy = false;
       if (state.view !== "chat" || !state.current || state.current.id !== sid) return;
+      if (opts.optimistic) state.current.messages.pop();
       state.actionError = err.message;
+      renderMessages();
       renderChatFoot();
     }
   }
@@ -562,20 +612,19 @@
       const pct = isFinite(v) ? Math.max(0, Math.min(100, v)) : 0;
       return `<div class="score-line"><span>${label}</span>
         <div class="bar"><i style="width:${pct}%"></i></div>
-        <span>${isFinite(v) ? v : "-"}</span></div>`;
+        <span class="score-num">${isFinite(v) ? v : "-"}</span></div>`;
     }).join("");
     return `
-      <div class="card result">
-        <h2 class="card-title">面试结果</h2>
-        <div class="grade-row">
-          <div class="grade ${esc(grade)}">${esc(grade)}</div>
+      <div class="result card">
+        <div class="result-head">
+          <div class="grade-ring grade-${esc(grade)}"><span>${esc(grade)}</span></div>
           <div>
-            <div style="font-size:18px;font-weight:600">${result.total != null ? "总分 " + esc(result.total) : ""}</div>
-            <div class="muted">评级 A-E，A 为最高</div>
+            <div class="result-title">面试结果</div>
+            <div class="result-sub">${result.total != null ? "总分 " + esc(result.total) + " · " : ""}评级 A-E，A 为最高</div>
           </div>
         </div>
-        ${rows}
-        <div class="feedback">${esc(result.feedback || "")}</div>
+        <div class="score-board">${rows}</div>
+        <div class="feedback-text">${esc(result.feedback || "")}</div>
       </div>`;
   }
 

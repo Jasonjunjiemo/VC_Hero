@@ -27,6 +27,18 @@ class InterviewError(Exception):
     pass
 
 
+# 模型决定结束简历阶段时输出在回复末尾的标记（对考生不可见）
+CV_DONE_MARKER = "[[CV_DONE]]"
+
+
+def _strip_marker(reply):
+    """剥离阶段结束标记，返回 (清理后的回复, 是否含标记)。"""
+    if CV_DONE_MARKER in reply:
+        cleaned = reply.replace(CV_DONE_MARKER, "").rstrip()
+        return (cleaned or reply), True
+    return reply, False
+
+
 def _time_expired(s):
     if not s.get("time_limit_min") or not s.get("started_at"):
         return False
@@ -46,12 +58,13 @@ def _build_system_prompt(s, resume_text):
 
     if s["phase"] == "cv":
         phase_rules = prompts.load_prompt("CV_Evaluation_and_Questioning_Rules")
-        intensity = config.LEVEL_INTENSITY[s["level"]]
         phase_desc = (
-            f"当前处于阶段一【简历问答】，本阶段提问数量{intensity}。"
+            f"当前处于阶段一【简历问答】，本阶段计划提问约 {s['cv_target_min']}-{s['cv_target_max']} 个，"
+            "具体数量由你根据面试进程自行决定，不必机械地问满。"
             "请针对候选人简历继续提出下一个问题，深入挖掘最值得追问的经历，不要泛泛而谈。"
-            "请根据整体节奏自然把控深度，接近本阶段尾声时在合适的问题后自然收尾，"
-            "不要生硬地宣布阶段结束，也不要透露具体的题目数量。"
+            "当你决定结束本阶段时：本条回复先对阶段一做一两句简短总结、不要再提问，"
+            f"然后在回复末尾单独一行输出标记 {CV_DONE_MARKER}。"
+            f"除末尾标记外，不要在回复任何其他位置输出 {CV_DONE_MARKER}。"
         )
         scenario = ""
     else:
@@ -155,21 +168,25 @@ def _get_active(user_id, session_id):
 
 
 def _ask_next(client, s):
-    """决定下一步：继续提问还是进入评分，并生成面试官回复（经 2 轮自我迭代）。"""
-    # 阶段一是否结束
-    if s["phase"] == "cv" and s["cv_asked"] >= s["cv_total"]:
-        if s["task_index"] >= len(s["tasks"]):
-            return _score(client, s)  # 无 task 配置时直接进入评分
-        s["phase"] = "task"
-        s["task_turns"] = 0
+    """决定下一步：继续提问还是进入评分，并生成面试官回复（经 2 轮自我迭代）。
 
-    if s["phase"] == "task":
-        # 当前 task 回合已满：推进到下一个 task 或结束
-        if s["task_turns"] >= config.TASK_TURNS_PER_TASK:
+    简历阶段结束有两种触发：模型在回复末尾输出 [[CV_DONE]] 标记（模型自行决定题数），
+    或答题数达到安全上限（防止模型忘记收尾）。
+    """
+    while True:
+        if s["phase"] == "cv" and s["cv_asked"] >= s["cv_cap"]:
+            if s["task_index"] >= len(s["tasks"]):
+                return _score(client, s)
+            s["phase"] = "task"
+            s["task_turns"] = 0
+            continue
+        if s["phase"] == "task" and s["task_turns"] >= config.TASK_TURNS_PER_TASK:
             s["task_index"] += 1
             s["task_turns"] = 0
             if s["task_index"] >= len(s["tasks"]):
                 return _score(client, s)
+            continue
+        break
 
     resume_text = storage.get_resume_text(s["user_id"], s["resume_id"]) or ""
     system_prompt = _build_system_prompt(s, resume_text)
@@ -177,11 +194,22 @@ def _ask_next(client, s):
         reply = client.interviewer_reply(system_prompt, _history(s))
     except KimiError as e:
         raise InterviewError(f"AI 服务暂时不可用，请稍后重试（{e}）")
+    reply, cv_done = _strip_marker(reply)
 
     s["messages"].append({"role": "interviewer", "content": reply,
                           "ts": time.time()})
-    if s["phase"] == "task":
-        s["task_turns"] += 1
+    if s["phase"] == "cv":
+        s["cv_asked"] += 1
+        storage.save_session(s)
+        if cv_done:
+            # 模型主动收尾：若无剩余任务则直接评分，否则立即布置任务开场
+            if s["task_index"] >= len(s["tasks"]):
+                return _score(client, s)
+            s["phase"] = "task"
+            s["task_turns"] = 0
+            return _ask_next(client, s)
+        return s
+    s["task_turns"] += 1
     storage.save_session(s)
     return s
 

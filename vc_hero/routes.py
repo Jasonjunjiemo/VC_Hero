@@ -153,7 +153,8 @@ def _session_view(s, detail=False):
         "resume_id": s["resume_id"],
         "resume_name": s["resume_name"],
         "level": s["level"],
-        "cv_total": s["cv_total"],
+        "cv_target_min": s["cv_target_min"],
+        "cv_target_max": s["cv_target_max"],
         "task_count": s["task_count"],
         "time_limit_min": s["time_limit_min"],
         "status": s["status"],
@@ -198,7 +199,7 @@ def create_session():
     resume = next((r for r in storage.list_resumes(user_id) if r["id"] == resume_id), None)
     if not resume:
         return _bad("请选择一份简历")
-    if level not in config.QUESTION_LEVELS:
+    if level not in config.LEVEL_RANGES:
         return _bad("问题数量档位不合法")
     try:
         task_count = int(task_count)

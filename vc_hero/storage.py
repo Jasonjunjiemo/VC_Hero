@@ -208,6 +208,7 @@ def list_sessions(user_id):
 
 
 def create_session(user_id, name, resume_id, level, task_count, time_limit_min):
+    tmin, tmax, cap = config.LEVEL_RANGES[level]
     s = {
         "id": new_id(),
         "user_id": user_id,
@@ -215,7 +216,9 @@ def create_session(user_id, name, resume_id, level, task_count, time_limit_min):
         "resume_id": resume_id,
         "resume_name": "",
         "level": level,
-        "cv_total": config.QUESTION_LEVELS[level],
+        "cv_target_min": tmin,
+        "cv_target_max": tmax,
+        "cv_cap": cap,
         "task_count": task_count,
         "time_limit_min": time_limit_min,
         "tasks": [],

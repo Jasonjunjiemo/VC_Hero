@@ -16,13 +16,16 @@ BASE = "http://127.0.0.1:5000"
 
 
 class StubClient:
-    """模拟 Kimi：固定回复，验证状态机不需真实 API。"""
+    """模拟 Kimi：固定回复，第 3 条回复带阶段结束标记，验证状态机不需真实 API。"""
 
     n = 0
 
     def interviewer_reply(self, system_prompt, history):
         StubClient.n += 1
-        return f"【问题{StubClient.n}】请具体讲讲你在某项目里做了什么？"
+        msg = f"【问题{StubClient.n}】请具体讲讲你在某项目里做了什么？"
+        if StubClient.n == 4:
+            msg += "\n[[CV_DONE]]"
+        return msg
 
     def score_interview(self, system_prompt, transcript):
         return {
@@ -139,7 +142,8 @@ def main():
                                         "time_limit_min": None})
     expect(d.get("ok"), "创建会话")
     sid = d["session"]["id"]
-    expect(d["session"]["cv_total"] == 3, "low 档位 = 3 题")
+    expect(d["session"]["cv_target_min"] == 10 and d["session"]["cv_target_max"] == 14,
+           "low 档位目标区间 10-14")
     d = c.req("POST", "/api/sessions", {"name": "x", "resume_id": "bad",
                                         "level": "low", "task_count": 1})
     expect("error" in d, "无效简历被拒绝")
@@ -149,17 +153,18 @@ def main():
     d = c.req("PUT", f"/api/sessions/{sid}", {"name": "改名后"})
     expect(d["session"]["name"] == "改名后", "重命名会话")
 
-    print("[5] 面试流程（low=3 题 + 1 任务×3 回合 = 6 轮）")
+    print("[5] 面试流程（模型第 3 问收尾 + 1 任务×3 回合）")
     d = c.req("POST", f"/api/sessions/{sid}/start", {})
     expect(d["session"]["status"] == "active", "面试开始")
     expect(len(d["session"]["messages"]) == 1, "考官提出第 1 个问题")
 
-    # 答满 3 个 CV 问题
+    # 答满 3 个 CV 问题（第 3 条回复含 [[CV_DONE]] 标记）
     for i in range(3):
         d = c.req("POST", f"/api/sessions/{sid}/answer", {"content": f"我的回答{i+1}"})
     msgs = d["session"]["messages"]
-    expect(d["session"]["phase"] == "task", "3 题后进入 task 阶段")
-    expect(len([m for m in msgs if m["role"] == "interviewer"]) == 4, "task 场景已布置")
+    expect(d["session"]["phase"] == "task", "标记触发阶段切换")
+    expect("[[CV_DONE]]" not in json.dumps(msgs, ensure_ascii=False), "标记不对考生显示")
+    expect(len([m for m in msgs if m["role"] == "interviewer"]) == 5, "收尾后立即布置 task 场景")
 
     # 连答导致越界：再次 answer 前不能重复答
     d2 = c.req("POST", f"/api/sessions/{sid}/answer", {"content": "任务回答1"})
