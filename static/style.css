@@ -415,8 +415,13 @@ h2.card-title { font-size: 17px; margin-bottom: 16px; font-weight: 600; }
   max-width: none; margin: 0; padding: 6px 0 0;
 }
 .chat-scroll { padding: 0; }
+/* 滚离顶部后，上缘渐隐，内容自然淡出而非生硬切断 */
+.chat-scroll.scrolled {
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 32px);
+  mask-image: linear-gradient(to bottom, transparent, #000 32px);
+}
 .chat-inner {
-  max-width: 880px; margin: 0 auto; padding: 4px 22px 18px;
+  max-width: 880px; margin: 0 auto; padding: 14px 22px 18px;
   display: flex; flex-direction: column; gap: 18px;
 }
 #chat-foot > * { max-width: 880px; margin-left: auto; margin-right: auto; width: 100%; }

@@ -778,8 +778,10 @@
     state.atBottom = true;
     const scrollBox = q("#chat-scroll");
     if (scrollBox) {
+      scrollBox.classList.remove("scrolled");
       scrollBox.addEventListener("scroll", () => {
         state.atBottom = scrollBox.scrollHeight - scrollBox.scrollTop - scrollBox.clientHeight < 90;
+        scrollBox.classList.toggle("scrolled", scrollBox.scrollTop > 8);
       });
     }
 
@@ -1047,6 +1049,7 @@
       box.scrollTop = box.scrollHeight;
       box.addEventListener("scroll", () => {
         state.atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 90;
+        box.classList.toggle("scrolled", box.scrollTop > 8);
       });
       bindComposer(q("#chat-foot"));
       return;
