@@ -204,6 +204,7 @@ def _session_view(s, detail=False):
         v["cv_asked"] = s.get("cv_asked")
         v["task_index"] = s.get("task_index")
         v["task_total"] = len(s.get("tasks", []))
+        v["result_boundary"] = s.get("result_boundary")
     return v
 
 
