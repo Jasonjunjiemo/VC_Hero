@@ -183,7 +183,7 @@ def main():
     d = c.req("DELETE", f"/api/resumes/{rid}")
     expect(d.get("ok"), "删除简历")
 
-    print("\n全部通过 ✔")
+    print("\n全部通过")
 
 
 if __name__ == "__main__":

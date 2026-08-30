@@ -26,8 +26,8 @@ TASK_TURNS_PER_TASK = 3  # 每个 task：场景引入 + 2 轮追问
 KIMI_BASE_URL = "https://api.moonshot.cn/v1"
 KIMI_MODEL = "kimi-k3"
 KIMI_TIMEOUT = 180
-MAX_REPLY_TOKENS = 1500
-MAX_SCORING_TOKENS = 2500
+MAX_REPLY_TOKENS = 2000
+MAX_SCORING_TOKENS = 8000
 
 # ---- 全局限速（对全部用户生效，负载共享）----
 RATE_WINDOW_SECONDS = 3600

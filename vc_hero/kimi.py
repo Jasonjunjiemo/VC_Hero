@@ -43,7 +43,8 @@ class KimiClient:
                     done = True
                     return text
                 except KimiError as e:
-                    if attempt >= retries or "429" not in str(e):
+                    retriable = "429" in str(e) or "空内容" in str(e)
+                    if attempt >= retries or not retriable:
                         raise
                     time.sleep(min(2 ** attempt * 3, 30))
         finally:
