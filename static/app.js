@@ -13,6 +13,7 @@
     sessions: [],           // 面试会话
     trainingSessions: [],   // 学习会话
     tab: "interview",       // 主页当前 tab：interview / training
+    switching: false,
     current: null,        // 当前面试会话详情
     view: "landing",      // landing / auth / settings / chat
     busy: false,
@@ -118,10 +119,11 @@
     },
   };
 
-  function tabContentHtml() {
-    const t = LANDING_TABS[state.tab];
+  function tabContentHtml(tabKey) {
+    tabKey = tabKey || state.tab;
+    const t = LANDING_TABS[tabKey];
     const logged = !!state.user;
-    const isTrain = state.tab === "training";
+    const isTrain = tabKey === "training";
     const listId = isTrain ? "training-session-list" : "session-list";
     const newId = isTrain ? "new-training" : "new-session";
     const panelTitle = isTrain ? "学习会话" : "面试会话";
@@ -199,26 +201,34 @@
 
   const wait = (ms) => new Promise(r => setTimeout(r, ms));
 
-  // tab 切换：按一下只往一个方向走——点右边的 tab 内容整体左移，点左边的 tab 内容整体右移
+  // tab 切换：双面板轨道整体往一个方向平移（点右边的 tab 整体左移，反之整体右移）
   async function switchTab(target) {
-    if (state.tab === target) return;
+    if (state.tab === target || state.switching) return;
+    state.switching = true;
     const host = q("#tab-host");
     const goingRight = target === "training";   // 面试在左、训练在右
     if (state.user) {
-      host.classList.add(goingRight ? "slide-out-l" : "slide-out-r");
       try { await loadSessions(); } catch (e) { /* 列表刷新失败不阻塞切换 */ }
-      await wait(280);
     }
+    const cur = state.tab;
     state.tab = target;
     app.querySelectorAll(".seg-tab").forEach(b =>
       b.classList.toggle("on", b.dataset.ltab === target));
     if (host) {
+      const curHtml = tabContentHtml(cur);
+      const nextHtml = tabContentHtml(target);
+      // 轨道：向右切=[当前,新]，整体左移；向左切=[新,当前]，整体右移
       host.className = "";
-      host.innerHTML = tabContentHtml();
-      if (state.user) host.classList.add(goingRight ? "slide-in-r" : "slide-in-l");
+      host.innerHTML = `<div class="tab-track ${goingRight ? "" : "rev"}">` +
+        (goingRight ? curHtml + nextHtml : nextHtml + curHtml) + "</div>";
+      const track = host.querySelector(".tab-track");
+      void track.offsetWidth;  // 强制回流，确保动画生效
+      track.classList.add(goingRight ? "go-left" : "go-right");
+      await wait(330);
+      host.innerHTML = nextHtml;
       bindTabContent();
-      if (state.user) setTimeout(() => host.classList.remove("slide-in-l", "slide-in-r"), 360);
     }
+    state.switching = false;
   }
 
   function bindLanding() {
