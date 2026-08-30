@@ -74,6 +74,7 @@
       renderSettings();
     });
     q("#logout").addEventListener("click", async () => {
+      if (!confirm("确定要退出登录吗？")) return;
       await api("/logout", { method: "POST" });
       state.user = null;
       location.href = "/";
@@ -117,7 +118,7 @@
     },
   };
 
-  function landingBodyHtml() {
+  function tabContentHtml() {
     const t = LANDING_TABS[state.tab];
     const logged = !!state.user;
     const isTrain = state.tab === "training";
@@ -134,6 +135,45 @@
         <div id="${listId}" style="margin-top:8px"></div>
       </div>` : "";
     return `
+      <div class="tab-content">
+        <div class="hero ${isTrain ? "training" : ""}">
+          <div class="hero-text">
+            <div class="hero-eyebrow">${t.eyebrow}</div>
+            <h1>${t.title}</h1>
+            <p>${t.desc}</p>
+            <div class="row" style="margin-top:20px">
+              ${logged
+                ? `<button id="${t.btn.id}">${t.btn.text}</button>`
+                : `<button id="hero-login">登录</button>
+                   <button class="ink" id="hero-register">免费注册</button>`}
+            </div>
+          </div>
+          <div class="hero-art"><img src="/static/img/hero.svg" alt="AI 面试示意"></div>
+        </div>
+        ${sess}
+        <div class="features">
+          ${t.features.map(([img, h3, p]) => `
+            <div class="feature card">
+              <img src="/static/img/${img}" alt="">
+              <h3>${h3}</h3>
+              <p>${p}</p>
+            </div>`).join("")}
+        </div>
+      </div>`;
+  }
+
+  async function loadSessions() {
+    const [r2, r3, r4] = await Promise.all([
+      api("/resumes"), api("/sessions?kind=interview"), api("/sessions?kind=training"),
+    ]);
+    state.resumes = r2.resumes;
+    state.sessions = r3.sessions;
+    state.trainingSessions = r4.sessions;
+  }
+
+  function landingShellHtml() {
+    return `
+      ${state.user ? topbarHtml("landing") : navTopbarHtml()}
       <div class="page">
         <div class="tab-bar">
           <div class="tab-seg">
@@ -141,58 +181,50 @@
             <button class="seg-tab ${state.tab === "training" ? "on" : ""}" data-ltab="training">AI 训练官</button>
           </div>
         </div>
-        <div class="tab-content">
-          <div class="hero">
-            <div class="hero-text">
-              <div class="hero-eyebrow">${t.eyebrow}</div>
-              <h1>${t.title}</h1>
-              <p>${t.desc}</p>
-              <div class="row" style="margin-top:20px">
-                ${logged
-                  ? `<button id="${t.btn.id}">${t.btn.text}</button>`
-                  : `<button id="hero-login">登录</button>
-                     <button class="ink" id="hero-register">免费注册</button>`}
-              </div>
-            </div>
-            <div class="hero-art"><img src="/static/img/hero.svg" alt="AI 面试示意"></div>
-          </div>
-          ${sess}
-          <div class="features">
-            ${t.features.map(([img, h3, p]) => `
-              <div class="feature card">
-                <img src="/static/img/${img}" alt="">
-                <h3>${h3}</h3>
-                <p>${p}</p>
-              </div>`).join("")}
-          </div>
-        </div>
+        <div id="tab-host"></div>
       </div>`;
   }
 
-  function bindLanding() {
-    const hl = q("#hero-login"), hr = q("#hero-register");
-    if (hl) hl.addEventListener("click", () => renderAuth("login"));
-    if (hr) hr.addEventListener("click", () => renderAuth("register"));
+  // 绑定 hero 按钮与两个会话面板（tab 内容区每次切换后重新绑定）
+  function bindTabContent() {
+    q("#hero-login")?.addEventListener("click", () => renderAuth("login"));
+    q("#hero-register")?.addEventListener("click", () => renderAuth("register"));
     q("#hero-new")?.addEventListener("click", () => openInterviewModal());
     q("#hero-train")?.addEventListener("click", () => openTrainingModal());
     q("#new-session")?.addEventListener("click", () => openInterviewModal());
     q("#new-training")?.addEventListener("click", () => openTrainingModal());
-    // tab 切换：左右滑动过渡，不跳转
-    app.querySelectorAll("[data-ltab]").forEach(b =>
-      b.addEventListener("click", async () => {
-        const target = b.dataset.ltab;
-        if (state.tab === target) return;
-        const prev = state.tab;
-        state.tab = target;
-        await renderHome();
-        const content = q(".tab-content");
-        if (content) {
-          // 向右切（下标变大）内容从右侧滑入，反之从左侧滑入
-          content.classList.add(target === "training" ? "slide-l" : "slide-r");
-        }
-      }));
     renderSessionList();
     renderTrainingSessionList();
+  }
+
+  const wait = (ms) => new Promise(r => setTimeout(r, ms));
+
+  // tab 切换：整页滑出再滑入，顶栏与切换器保持不动（无闪烁）
+  async function switchTab(target) {
+    if (state.tab === target) return;
+    const host = q("#tab-host");
+    const goingRight = target === "training";
+    if (state.user) {
+      host.classList.add(goingRight ? "slide-out-l" : "slide-out-r");
+      try { await loadSessions(); } catch (e) { /* 列表刷新失败不阻塞切换 */ }
+      await wait(240);
+    }
+    state.tab = target;
+    app.querySelectorAll(".seg-tab").forEach(b =>
+      b.classList.toggle("on", b.dataset.ltab === target));
+    if (host) {
+      host.className = "";
+      host.innerHTML = tabContentHtml();
+      if (state.user) host.classList.add(goingRight ? "slide-in-r" : "slide-in-l");
+      bindTabContent();
+      if (state.user) setTimeout(() => host.classList.remove("slide-in-l", "slide-in-r"), 340);
+    }
+  }
+
+  function bindLanding() {
+    app.querySelectorAll("[data-ltab]").forEach(b =>
+      b.addEventListener("click", () => switchTab(b.dataset.ltab)));
+    bindTabContent();
   }
 
   async function renderHome() {
@@ -201,14 +233,10 @@
     state.current = null;
     state.busy = false;
     if (state.user) {
-      const [r2, r3, r4] = await Promise.all([
-        api("/resumes"), api("/sessions?kind=interview"), api("/sessions?kind=training"),
-      ]);
-      state.resumes = r2.resumes;
-      state.sessions = r3.sessions;
-      state.trainingSessions = r4.sessions;
+      try { await loadSessions(); } catch (e) { /* 未加载出列表也可先渲染 */ }
     }
-    app.innerHTML = (state.user ? topbarHtml("landing") : navTopbarHtml()) + landingBodyHtml();
+    app.innerHTML = landingShellHtml();
+    q("#tab-host").innerHTML = tabContentHtml();
     if (state.user) bindTopbar("landing");
     else {
       q("#nav-login").addEventListener("click", () => renderAuth("login"));
@@ -216,7 +244,6 @@
     }
     bindLanding();
   }
-
   // ---------- 登录 / 注册 ----------
   function renderAuth(mode) {
     clearTimer();
@@ -290,10 +317,14 @@
           <div id="resume-list"></div>
           <form id="resume-form" style="margin-top:10px">
             <div class="row">
-              <input type="file" name="file" accept="application/pdf" required>
-              <button type="submit" class="small" style="flex:none">上传</button>
+              <label class="plus-btn" title="选择 PDF 简历">
+                <input type="file" id="resume-file" accept="application/pdf">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
+                     stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+              </label>
+              <span class="file-name" id="resume-file-name">选择文件后立即上传</span>
             </div>
-            <div class="hint">仅支持 PDF，单份不超过 10MB</div>
+            <div class="hint">仅支持 PDF，单份不超过 10MB，最多 5 份</div>
             <div id="resume-err"></div>
           </form>
         </div>
@@ -314,7 +345,7 @@
         q("#profile-msg").textContent = "已保存";
       } catch (err) { q("#profile-msg").textContent = err.message; }
     });
-    q("#resume-form").addEventListener("submit", uploadResume);
+    q("#resume-file").addEventListener("change", uploadResume);
     renderResumeList();
   }
 
@@ -342,12 +373,14 @@
       }));
   }
 
+  // 选择文件后立即上传
   async function uploadResume(e) {
-    e.preventDefault();
     const errBox = q("#resume-err");
     errBox.innerHTML = "";
-    const f = new FormData(e.target).get("file");
+    const nameEl = q("#resume-file-name");
+    const f = e.target.files[0];
     if (!f) return;
+    if (nameEl) nameEl.textContent = `上传中：${f.name}…`;
     try {
       const fd = new FormData();
       fd.append("file", f);
@@ -356,6 +389,8 @@
       if (!r.ok) throw new Error(data.error || "上传失败");
       renderSettings();
     } catch (err) {
+      if (nameEl) nameEl.textContent = "选择文件后立即上传";
+      e.target.value = "";
       errBox.innerHTML = `<div class="err-banner">${esc(err.message)}</div>`;
     }
   }
@@ -456,7 +491,7 @@
 
   // ---------- 新建面试会话弹层 ----------
   function openInterviewModal() {
-    if (!state.resumes.length) { alert("请先在个人信息设置里上传至少一份简历"); return; }
+    if (!state.resumes.length) { openNoResumeModal(); return; }
     const mask = document.createElement("div");
     mask.className = "modal-mask";
     mask.innerHTML = `
@@ -527,10 +562,34 @@
     });
   }
 
+  // 没有简历时的引导弹窗：一键去个人信息页上传
+  function openNoResumeModal() {
+    const mask = document.createElement("div");
+    mask.className = "modal-mask";
+    mask.innerHTML = `
+      <div class="card modal" style="text-align:center">
+        <h2 class="card-title">还没有简历</h2>
+        <p class="muted" style="margin-bottom:20px">创建面试会话需要先上传一份 PDF 简历，<br>去个人信息设置里上传吧。</p>
+        <div class="row" style="justify-content:center">
+          <button class="ghost" id="no-resume-cancel">取消</button>
+          <button id="no-resume-go">去上传简历</button>
+        </div>
+      </div>`;
+    document.body.appendChild(mask);
+    mask.addEventListener("click", (e) => { if (e.target === mask) mask.remove(); });
+    mask.querySelector("#no-resume-cancel").addEventListener("click", () => mask.remove());
+    mask.querySelector("#no-resume-go").addEventListener("click", () => {
+      mask.remove();
+      renderSettings();
+    });
+  }
+
   // ---------- 新建学习会话弹层（训练官） ----------
   function openTrainingModal() {
     const interviewOpts = state.sessions.map(s =>
       `<option value="${s.id}">${esc(s.name)}（${STATUS_TEXT[s.status] || s.status}）</option>`).join("");
+    const sessionOpts = interviewOpts
+      || `<option value="">暂无面试会话（先去完成一场模拟面试）</option>`;
     const mask = document.createElement("div");
     mask.className = "modal-mask";
     mask.innerHTML = `
@@ -549,19 +608,25 @@
             <div class="radio-row">
               <label class="radio"><input type="radio" name="ctx_method" value="paste" checked> 粘贴文本</label>
               <label class="radio"><input type="radio" name="ctx_method" value="file"> 上传文件</label>
-              <label class="radio"><input type="radio" name="ctx_method" value="session" ${interviewOpts ? "" : "disabled"}> 从面试会话导入</label>
+              <label class="radio"><input type="radio" name="ctx_method" value="session"> 从面试会话导入</label>
             </div>
             <div id="ctx-paste">
               <textarea name="context_text" placeholder="粘贴任何背景材料：简历片段、过往面试复盘、目标说明……"></textarea>
             </div>
             <div id="ctx-file" style="display:none">
-              <input type="file" id="ctx-file-input" accept=".pdf,.txt,.md,.docx">
-              <div class="hint" id="ctx-file-status">支持 PDF / TXT / MD / DOCX</div>
+              <div class="row">
+                <label class="plus-btn" title="选择文件">
+                  <input type="file" id="ctx-file-input" accept=".pdf,.txt,.md,.docx">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
+                       stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+                </label>
+                <span class="file-name" id="ctx-file-status">支持 PDF / TXT / MD / DOCX</span>
+              </div>
             </div>
             <div id="ctx-session" style="display:none">
               <select id="ctx-session-select">
                 <option value="">选择要导入的面试会话（含对话、评级与反馈）</option>
-                ${interviewOpts}
+                ${sessionOpts}
               </select>
             </div>
           </div>
@@ -652,6 +717,25 @@
   // ---------- 面试页 ----------
   async function renderChat(sessionId) {
     clearTimer();
+    state.view = "chat";
+    state.busy = false;
+    state.actionError = "";
+    history.replaceState(null, "", "/session/" + sessionId);
+
+    // 先渲染页面骨架：顶栏与容器立即出现，不再有白屏等待
+    app.innerHTML = `
+      <div class="topbar">
+        <div class="back-btn" id="back">‹ 返回</div>
+        <div class="title chat-title" id="chat-title"></div>
+        <div class="spacer"></div>
+        <div class="timer" id="timer"></div>
+      </div>
+      <div class="chat-body" id="chat-body">
+        <div class="chat-scroll" id="chat-scroll"></div>
+        <div id="chat-foot"><div class="boot-loading" style="padding:30px 0">加载会话中…</div></div>
+      </div>`;
+    q("#back").addEventListener("click", () => { location.href = "/"; });
+
     let s;
     try {
       const d = await api("/sessions/" + sessionId);
@@ -661,33 +745,19 @@
       location.href = "/";
       return;
     }
-    state.view = "chat";
     state.current = s;
-    state.busy = false;
-    state.actionError = "";
     const isTrain = s.kind === "training";
 
-    history.replaceState(null, "", "/session/" + sessionId);
-    app.innerHTML = `
-      <div class="topbar">
-        <div class="back-btn" id="back">‹ 返回</div>
-        <div class="title chat-title">${esc(s.name)}${isTrain ? '<span class="badge active">训练</span>' : ""}</div>
-        <div class="spacer"></div>
-        <div class="timer" id="timer"></div>
-        ${s.status !== "scored" ? `<button class="ghost small" style="flex:none" id="finish-btn">${isTrain ? "结束训练" : "结束面试"}</button>` : ""}
-      </div>
-      <div class="chat-body" id="chat-body">
-        <div class="chat-scroll" id="chat-scroll"></div>
-        <div id="chat-foot"></div>
-      </div>`;
-
-    q("#back").addEventListener("click", () => { location.href = "/"; });
-    const fb = q("#finish-btn");
-    if (fb) fb.addEventListener("click", async () => {
-      if (s.status === "created") { location.href = "/"; return; }
-      if (!confirm(isTrain ? "确定结束训练？将生成训练总结。" : "确定结束面试？结束后将给出评级和反馈。")) return;
-      await sendAction("/finish", {});
-    });
+    q("#chat-title").innerHTML = `${esc(s.name)}${isTrain ? '<span class="badge active">训练</span>' : ""}`;
+    if (s.status !== "scored") {
+      q(".topbar").insertAdjacentHTML("beforeend",
+        `<button class="ghost small" style="flex:none" id="finish-btn">${isTrain ? "结束训练" : "结束面试"}</button>`);
+      q("#finish-btn").addEventListener("click", async () => {
+        if (s.status === "created") { location.href = "/"; return; }
+        if (!confirm(isTrain ? "确定结束训练？将生成训练总结。" : "确定结束面试？结束后将给出评级和反馈。")) return;
+        await sendAction("/finish", {});
+      });
+    }
 
     renderMessages();
     renderChatFoot();
