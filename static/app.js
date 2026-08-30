@@ -819,17 +819,23 @@
     if (!box || !state.current) return;
     const s = state.current;
     const stick = state.atBottom;
-    // 消息与历史结果面板按边界交错渲染：结果面板留在消息流中，但不进入 AI 上下文
+    // 消息与结果面板按边界交错渲染：历史快照 + 当前结果（含其消息边界），与状态无关；
+    // 面板留在消息流中，但不进入 AI 上下文
     const panelHtml = s.kind === "training" ? trainingResultHtml : resultHtml;
+    const snaps = (s.results_history || []).map(h => ({ result: h.result, message_count: h.message_count }));
+    if (s.result) {
+      const b = typeof s.result_boundary === "number" ? s.result_boundary : s.messages.length;
+      snaps.push({ result: s.result, message_count: b });
+    }
+    snaps.sort((a, b2) => a.message_count - b2.message_count);
     const parts = [];
     let boundary = 0;
-    for (const h of (s.results_history || [])) {
+    for (const h of snaps) {
       parts.push(...s.messages.slice(boundary, h.message_count).map(msgHtml));
       parts.push(panelHtml(h.result));
       boundary = h.message_count;
     }
     parts.push(...s.messages.slice(boundary).map(msgHtml));
-    if (s.status === "scored" && s.result) parts.push(panelHtml(s.result));
     if (state.busy) parts.push(`
       <div class="msg ai" id="thinking-msg">
         <div class="avatar">VC</div>

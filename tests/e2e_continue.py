@@ -88,7 +88,9 @@ def main():
         out["after_continue_click"] = c.eval("""JSON.stringify({
           status: (window.__s = document.querySelector('#answer-input')) ? 'has-composer' : 'no-composer',
           finishBtn: document.querySelector('#finish-btn')?.textContent || null,
-          thinkingOrMsg: !!document.querySelector('.msg.ai .bubble')
+          order: [...document.querySelector('.chat-inner').children].map(el =>
+            el.className.includes('result') ? 'PANEL' : el.className.includes('msg') ? 'msg'
+              : el.className.toString().slice(0,12))
         })""")
 
         # 走一轮回答（stub 秒回）
