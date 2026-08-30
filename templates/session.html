@@ -8,12 +8,13 @@
 </head>
 <body>
 <div id="app">
-  <div class="topbar">
-    <div class="back-btn" id="back">‹ 返回</div>
-    <div class="title chat-title">{{ name }}{% if kind == "training" %}<span class="badge active">训练</span>{% endif %}</div>
-    <div class="spacer"></div>
-    <div class="timer" id="timer">不限时</div>
-    <button class="ghost small" style="flex:none" id="finish-btn">{% if kind == "training" %}结束训练{% else %}结束面试{% endif %}</button>
+  <div class="chat-floatbar">
+    <button class="ghost small" id="back">‹ 返回</button>
+    <div class="chat-float-title">{{ name }}{% if kind == "training" %}<span class="badge active">训练</span>{% endif %}</div>
+    <div class="row">
+      <div class="timer" id="timer">不限时</div>
+      <button class="ghost small" id="finish-btn">{% if kind == "training" %}结束训练{% else %}结束面试{% endif %}</button>
+    </div>
   </div>
   <div class="chat-body" id="chat-body">
     <div class="chat-scroll" id="chat-scroll">

@@ -422,3 +422,20 @@ h2.card-title { font-size: 17px; margin-bottom: 16px; font-weight: 600; }
 #chat-foot > * { max-width: 880px; margin-left: auto; margin-right: auto; width: 100%; }
 #chat-foot .start-wrap { max-width: none; }
 #chat-foot { padding: 0 22px; box-sizing: border-box; }
+
+/* ---------- 聊天页浮动控件栏（DeepSeek 式：无横条，透明按钮浮在内容上方） ---------- */
+.chat-floatbar {
+  position: fixed; top: 0; left: 0; right: 0; height: 48px;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 0 16px; z-index: 10;
+  background: transparent; border: none;
+  pointer-events: none;   /* 栏本身不拦截任何内容 */
+}
+.chat-floatbar > * { pointer-events: auto; }
+.chat-float-title {
+  font-weight: 600; font-size: 14px; color: var(--ink-2);
+  max-width: 40vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* 对话区占满整个视口，内容从页面顶端开始铺；内容列顶部留 56px 避开浮动按钮 */
+.chat-body { height: 100vh; height: 100dvh; padding: 0; }
+.chat-inner { padding: 56px 22px 18px; }

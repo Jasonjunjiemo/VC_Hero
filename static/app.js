@@ -732,13 +732,15 @@
     state.actionError = "";
     history.replaceState(null, "", "/session/" + sessionId);
 
-    // 先渲染页面骨架：顶栏与容器立即出现，不再有白屏等待
+    // 先渲染页面骨架：浮动控件与容器立即出现，不再有白屏等待
     app.innerHTML = `
-      <div class="topbar">
-        <div class="back-btn" id="back">‹ 返回</div>
-        <div class="title chat-title" id="chat-title"></div>
-        <div class="spacer"></div>
-        <div class="timer" id="timer"></div>
+      <div class="chat-floatbar">
+        <button class="ghost small" id="back">‹ 返回</button>
+        <div class="chat-float-title" id="chat-title"></div>
+        <div class="row">
+          <div class="timer" id="timer"></div>
+          <span id="finish-slot"></span>
+        </div>
       </div>
       <div class="chat-body" id="chat-body">
         <div class="chat-scroll" id="chat-scroll">
@@ -762,8 +764,8 @@
 
     q("#chat-title").innerHTML = `${esc(s.name)}${isTrain ? '<span class="badge active">训练</span>' : ""}`;
     if (s.status !== "scored") {
-      q(".topbar").insertAdjacentHTML("beforeend",
-        `<button class="ghost small" style="flex:none" id="finish-btn">${isTrain ? "结束训练" : "结束面试"}</button>`);
+      q("#finish-slot").innerHTML =
+        `<button class="ghost small" id="finish-btn">${isTrain ? "结束训练" : "结束面试"}</button>`;
       q("#finish-btn").addEventListener("click", async () => {
         if (s.status === "created") { location.href = "/"; return; }
         if (!confirm(isTrain ? "确定结束训练？将生成训练总结。" : "确定结束面试？结束后将给出评级和反馈。")) return;
