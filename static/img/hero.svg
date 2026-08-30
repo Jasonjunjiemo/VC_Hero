@@ -1,32 +1,38 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 360" width="480" height="360">
   <rect x="0" y="0" width="480" height="360" rx="16" fill="#eef2ff"/>
-  <circle cx="120" cy="90" r="46" fill="#2e5ce6" opacity="0.12"/>
-  <circle cx="380" cy="270" r="60" fill="#2e5ce6" opacity="0.08"/>
+  <circle cx="110" cy="80" r="44" fill="#4656e0" opacity="0.10"/>
+  <circle cx="392" cy="286" r="56" fill="#4656e0" opacity="0.07"/>
+
   <!-- 面试官 -->
-  <circle cx="150" cy="150" r="34" fill="#2e5ce6"/>
-  <path d="M98 236c0-30 23-52 52-52s52 22 52 52v10H98z" fill="#2e5ce6"/>
-  <rect x="96" y="118" width="108" height="14" rx="7" fill="#1d2129"/>
-  <circle cx="138" cy="146" r="4" fill="#fff"/>
-  <circle cx="162" cy="146" r="4" fill="#fff"/>
+  <circle cx="146" cy="146" r="34" fill="#4656e0"/>
+  <path d="M94 232c0-30 23-52 52-52s52 22 52 52v8H94z" fill="#4656e0"/>
+  <circle cx="134" cy="142" r="4" fill="#fff"/>
+  <circle cx="158" cy="142" r="4" fill="#fff"/>
+  <path d="M134 158q12 8 24 0" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round"/>
+
   <!-- 考生 -->
-  <circle cx="336" cy="168" r="30" fill="#86909c"/>
-  <path d="M290 246c0-27 20-46 46-46s46 19 46 46v8H290z" fill="#86909c"/>
-  <!-- 对话气泡 -->
-  <rect x="196" y="52" width="150" height="52" rx="12" fill="#ffffff" stroke="#e5e6eb"/>
-  <path d="M216 104l-8 16 20-12z" fill="#ffffff" stroke="#e5e6eb"/>
-  <rect x="212" y="70" width="96" height="8" rx="4" fill="#2e5ce6" opacity="0.55"/>
-  <rect x="212" y="86" width="64" height="8" rx="4" fill="#c9d4f5"/>
-  <rect x="246" y="130" width="150" height="52" rx="12" fill="#2e5ce6"/>
-  <path d="M376 182l8 16-20-12z" fill="#2e5ce6"/>
-  <rect x="262" y="148" width="96" height="8" rx="4" fill="#ffffff" opacity="0.9"/>
-  <rect x="262" y="164" width="64" height="8" rx="4" fill="#ffffff" opacity="0.55"/>
+  <circle cx="336" cy="168" r="30" fill="#9aa4bb"/>
+  <path d="M290 246c0-27 20-46 46-46s46 19 46 46v6H290z" fill="#9aa4bb"/>
+
+  <!-- 考官气泡（白）：尾巴先画、压在矩形下，保证连接无缝 -->
+  <path d="M222 96l-10 20 22-14z" fill="#ffffff"/>
+  <rect x="198" y="46" width="152" height="52" rx="13" fill="#ffffff" stroke="#dfe3ee" stroke-width="1.5"/>
+  <rect x="214" y="62" width="98" height="8" rx="4" fill="#4656e0" opacity="0.55"/>
+  <rect x="214" y="78" width="64" height="8" rx="4" fill="#c9d0ee"/>
+
+  <!-- 考生气泡（蓝） -->
+  <path d="M306 128l10 20-22-14z" fill="#4656e0"/>
+  <rect x="248" y="78" width="152" height="52" rx="13" fill="#4656e0"/>
+  <rect x="264" y="94" width="98" height="8" rx="4" fill="#ffffff" opacity="0.92"/>
+  <rect x="264" y="110" width="64" height="8" rx="4" fill="#ffffff" opacity="0.55"/>
+
   <!-- 评分卡 -->
-  <rect x="182" y="228" width="120" height="82" rx="12" fill="#ffffff" stroke="#e5e6eb"/>
-  <text x="214" y="284" font-family="Arial, sans-serif" font-size="34" font-weight="800" fill="#2ba471">A</text>
-  <rect x="248" y="250" width="40" height="7" rx="3.5" fill="#f2f3f5"/>
-  <rect x="248" y="250" width="34" height="7" rx="3.5" fill="#2e5ce6"/>
-  <rect x="248" y="266" width="40" height="7" rx="3.5" fill="#f2f3f5"/>
-  <rect x="248" y="266" width="26" height="7" rx="3.5" fill="#2e5ce6"/>
-  <rect x="248" y="282" width="40" height="7" rx="3.5" fill="#f2f3f5"/>
-  <rect x="248" y="282" width="30" height="7" rx="3.5" fill="#2e5ce6"/>
+  <rect x="182" y="228" width="122" height="84" rx="12" fill="#ffffff" stroke="#dfe3ee" stroke-width="1.5"/>
+  <text x="214" y="286" font-family="Arial, sans-serif" font-size="36" font-weight="800" fill="#16a06a">A</text>
+  <rect x="250" y="250" width="40" height="7" rx="3.5" fill="#eef0f6"/>
+  <rect x="250" y="250" width="34" height="7" rx="3.5" fill="#4656e0"/>
+  <rect x="250" y="266" width="40" height="7" rx="3.5" fill="#eef0f6"/>
+  <rect x="250" y="266" width="26" height="7" rx="3.5" fill="#4656e0"/>
+  <rect x="250" y="282" width="40" height="7" rx="3.5" fill="#eef0f6"/>
+  <rect x="250" y="282" width="30" height="7" rx="3.5" fill="#4656e0"/>
 </svg>

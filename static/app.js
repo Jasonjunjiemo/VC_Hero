@@ -16,6 +16,7 @@
     busy: false,
     actionError: "",
     draft: "",
+    atBottom: true,
     timerId: null,
   };
 
@@ -99,11 +100,12 @@
               ${logged
                 ? `<button id="hero-new">立即开始模拟面试</button>`
                 : `<button id="hero-login">登录</button>
-                   <button class="ghost" id="hero-register">免费注册</button>`}
+                   <button class="ink" id="hero-register">免费注册</button>`}
             </div>
           </div>
           <div class="hero-art"><img src="/static/img/hero.svg" alt="AI 面试示意"></div>
         </div>
+        ${sess}
         <div class="features">
           <div class="feature card">
             <img src="/static/img/feature_cv.svg" alt="">
@@ -121,7 +123,6 @@
             <p>面试结束后按五项职业能力给出 A-E 评级，并指出你的能力链条断在哪里、下一步具体练什么。</p>
           </div>
         </div>
-        ${sess}
       </div>`;
   }
 
@@ -204,7 +205,7 @@
     app.innerHTML = topbarHtml("settings") + `
       <div class="page" style="max-width:820px">
         <div class="page-head">
-          <button class="ghost small" id="settings-back">‹ 返回主页</button>
+          <button class="small" id="settings-back">‹ 返回主页</button>
           <h1 class="page-title">个人信息设置</h1>
         </div>
         <div class="card">
@@ -230,10 +231,14 @@
             <div id="resume-err"></div>
           </form>
         </div>
+        <div style="text-align:center;padding-bottom:6px">
+          <button class="ghost" id="settings-back2">‹ 返回主页</button>
+        </div>
       </div>`;
 
     bindTopbar("settings");
     q("#settings-back").addEventListener("click", () => { location.href = "/"; });
+    q("#settings-back2").addEventListener("click", () => { location.href = "/"; });
     q("#profile-form").addEventListener("submit", async (e) => {
       e.preventDefault();
       const body = Object.fromEntries(new FormData(e.target).entries());
@@ -355,9 +360,9 @@
           <div class="row3">
             <div><label>问题数量</label>
               <select name="level">
-                <option value="low">低 · 约10-14题</option>
-                <option value="medium" selected>中 · 约18-22题</option>
-                <option value="high">高 · 约35-45题</option>
+                <option value="low">低</option>
+                <option value="medium" selected>中</option>
+                <option value="high">高</option>
               </select>
             </div>
             <div><label>任务数量</label>
@@ -451,6 +456,15 @@
     renderMessages();
     renderChatFoot();
 
+    // 滚动钉底：只有本来就停在底部附近时，新消息才自动滚到底
+    state.atBottom = true;
+    const scrollBox = q("#chat-scroll");
+    if (scrollBox) {
+      scrollBox.addEventListener("scroll", () => {
+        state.atBottom = scrollBox.scrollHeight - scrollBox.scrollTop - scrollBox.clientHeight < 90;
+      });
+    }
+
     const tick = () => {
       if (state.view !== "chat" || !state.current) return clearTimer();
       const t = q("#timer");
@@ -475,13 +489,14 @@
     const box = q("#chat-scroll");
     if (!box || !state.current) return;
     const s = state.current;
+    const stick = state.atBottom;
     box.innerHTML = s.messages.map(m => `
       <div class="msg ${m.role === "candidate" ? "me" : "ai"}">
         <div class="avatar">${m.role === "candidate" ? "我" : "VC"}</div>
         <div class="bubble">${esc(m.content)}</div>
       </div>`).join("");
     if (state.busy) appendThinking(box);
-    box.scrollTop = box.scrollHeight;
+    if (stick) box.scrollTop = box.scrollHeight;
   }
 
   function appendThinking(box) {
@@ -535,19 +550,26 @@
       if (btn) btn.addEventListener("click", () => sendAction("/start", {}));
       return;
     }
-    // 进行中：轮到考生（思考中保留输入框，仅禁用，避免界面跳动）
+    // 进行中：轮到考生。考官思考时输入框保持可编辑，仅拦截发送并提示。
     foot.innerHTML = `
-      <div class="chat-input">
-        <textarea id="answer-input" placeholder="输入你的回答，Enter 发送，Ctrl+Enter 换行…"
-          ${state.busy ? "disabled" : ""}>${state.draft || ""}</textarea>
-        <button id="send-btn" style="flex:none" ${state.busy ? "disabled" : ""}>发送</button>
+      <div class="composer" id="composer">
+        <textarea id="answer-input" rows="2" placeholder="输入你的回答…">${esc(state.draft || "")}</textarea>
+        <div class="composer-foot">
+          <span class="composer-hint">Enter 发送 · Ctrl+Enter 换行</span>
+          <button id="send-btn" class="send-circle" title="发送" aria-label="发送">
+            <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor"
+                 stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+          </button>
+        </div>
       </div>
       <div id="action-err">${state.actionError ? `<div class="err-banner">${esc(state.actionError)}</div>` : ""}</div>`;
     const ta = foot.querySelector("#answer-input");
     const send = () => {
+      if (state.busy) { showToast("考官正在思考，请稍候再发送"); return; }
       const v = ta.value.trim();
-      if (!v || state.busy) return;
+      if (!v) return;
       state.draft = "";
+      state.atBottom = true;
       sendAction("/answer", { content: v }, { optimistic: v });
     };
     foot.querySelector("#send-btn").addEventListener("click", send);
@@ -559,7 +581,23 @@
       }
     });
     ta.addEventListener("input", () => { state.draft = ta.value; });
-    if (!state.busy) ta.focus();
+    ta.focus();
+  }
+
+  // 发送受限提示：发送按钮上方的小气泡，几秒自动淡出
+  function showToast(msg) {
+    const host = q(".composer-foot");
+    if (!host) return;
+    const old = q(".mini-toast");
+    if (old) old.remove();
+    const t = document.createElement("div");
+    t.className = "mini-toast";
+    t.textContent = msg;
+    host.appendChild(t);
+    setTimeout(() => {
+      t.classList.add("fade");
+      setTimeout(() => t.remove(), 550);
+    }, 2000);
   }
 
   async function sendAction(action, body, opts) {
