@@ -463,3 +463,10 @@ h2.card-title { font-size: 17px; margin-bottom: 16px; font-weight: 600; }
   display: inline-flex; align-items: center; justify-content: center;
   margin-bottom: 0; font-weight: 400; font-size: inherit; color: var(--ink-3);
 }
+
+/* 继续面试按钮区（结果面板下方） */
+.continue-bar {
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  padding: 4px 0 30px;
+}
+.continue-bar .big-btn { padding: 11px 42px; font-size: 15.5px; }

@@ -21,6 +21,8 @@ TASK_COUNT_MIN = 1
 TASK_COUNT_MAX = 5
 TIME_LIMIT_MAX_MIN = 180
 TASK_TURNS_PER_TASK = 3  # 每个 task：场景引入 + 2 轮追问
+# 继续面试：续聊满 N 个回答后自动生成新一轮面试结果
+CONTINUATION_AUTO_RESULT_ANSWERS = 6
 
 # ---- Kimi ----
 KIMI_BASE_URL = "https://api.moonshot.cn/v1"

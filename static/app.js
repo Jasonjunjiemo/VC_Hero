@@ -772,15 +772,7 @@
     const isTrain = s.kind === "training";
 
     q("#chat-title").innerHTML = `${esc(s.name)}${isTrain ? '<span class="badge active">训练</span>' : ""}`;
-    if (s.status !== "scored") {
-      q("#finish-slot").innerHTML =
-        `<button class="ghost small" id="finish-btn">${isTrain ? "结束训练" : "结束面试"}</button>`;
-      q("#finish-btn").addEventListener("click", async () => {
-        if (s.status === "created") { location.href = "/"; return; }
-        if (!confirm(isTrain ? "确定结束训练？将生成训练总结。" : "确定结束面试？结束后将给出评级和反馈。")) return;
-        await sendAction("/finish", {});
-      });
-    }
+    syncFinishBtn();
 
     renderMessages();
     renderChatFoot();
@@ -814,46 +806,108 @@
     state.timerId = setInterval(tick, 1000);
   }
 
+  function msgHtml(m) {
+    return `
+      <div class="msg ${m.role === "candidate" ? "me" : "ai"}">
+        <div class="avatar">${m.role === "candidate" ? "我" : "VC"}</div>
+        <div class="bubble">${esc(m.content)}</div>
+      </div>`;
+  }
+
   function renderMessages() {
     const box = q("#chat-inner");
     if (!box || !state.current) return;
     const s = state.current;
     const stick = state.atBottom;
-    box.innerHTML = s.messages.map(m => `
-      <div class="msg ${m.role === "candidate" ? "me" : "ai"}">
-        <div class="avatar">${m.role === "candidate" ? "我" : "VC"}</div>
-        <div class="bubble">${esc(m.content)}</div>
-      </div>`).join("");
-    if (state.busy) appendThinking(box);
-    const scroller = q("#chat-scroll");
-    if (stick && scroller) scroller.scrollTop = scroller.scrollHeight;
-  }
-
-  function appendThinking(box) {
-    box.insertAdjacentHTML("beforeend", `
+    // 消息与历史结果面板按边界交错渲染：结果面板留在消息流中，但不进入 AI 上下文
+    const panelHtml = s.kind === "training" ? trainingResultHtml : resultHtml;
+    const parts = [];
+    let boundary = 0;
+    for (const h of (s.results_history || [])) {
+      parts.push(...s.messages.slice(boundary, h.message_count).map(msgHtml));
+      parts.push(panelHtml(h.result));
+      boundary = h.message_count;
+    }
+    parts.push(...s.messages.slice(boundary).map(msgHtml));
+    if (s.status === "scored" && s.result) parts.push(panelHtml(s.result));
+    if (state.busy) parts.push(`
       <div class="msg ai" id="thinking-msg">
         <div class="avatar">VC</div>
         <div class="bubble"><span class="dots"><i></i><i></i><i></i></span></div>
       </div>`);
+    if (s.status === "scored" && s.result) {
+      const isTrain = s.kind === "training";
+      parts.push(`
+        <div class="continue-bar">
+          <button class="big-btn" id="continue-btn">${isTrain ? "继续训练" : "继续面试"}</button>
+          <div class="muted">${isTrain
+            ? "从上一次的结尾自然继续，聊几轮后会自动生成新的训练总结"
+            : "从上一次的结尾自然继续，聊几轮后会自动生成新的面试结果"}</div>
+        </div>`);
+    }
+    box.innerHTML = parts.join("");
+    box.querySelector("#continue-btn")?.addEventListener("click", continueInterview);
+    const scroller = q("#chat-scroll");
+    if (stick && scroller) scroller.scrollTop = scroller.scrollHeight;
+  }
+
+  // 面试/训练结束后续聊：自然继续，AI 侧无感知，聊满轮数自动生成新结果
+  async function continueInterview() {
+    if (state.busy || !state.current) return;
+    if (state.current.status !== "scored") return;
+    const sid = state.current.id;
+    try {
+      const d = await api("/sessions/" + sid + "/continue", { method: "POST", body: "{}" });
+      state.current = d.session;
+      state.atBottom = true;
+      renderMessages();
+      renderChatFoot();
+    } catch (err) {
+      state.actionError = err.message;
+      renderChatFoot();
+    }
+  }
+
+  function appendThinking() { /* 思考气泡已在 renderMessages 内联处理 */ }
+
+  // 右上角按钮随状态切换：进行中 = 结束面试/结束训练；结束后 = 继续面试/继续训练
+  function syncFinishBtn() {
+    const slot = q("#finish-slot");
+    if (!slot || !state.current) return;
+    const s = state.current;
+    const isTrain = s.kind === "training";
+    if (s.status === "scored") {
+      slot.innerHTML = `<button class="ghost small" id="finish-btn">${isTrain ? "继续训练" : "继续面试"}</button>`;
+      q("#finish-btn").addEventListener("click", continueInterview);
+      return;
+    }
+    slot.innerHTML = `<button class="ghost small" id="finish-btn">${isTrain ? "结束训练" : "结束面试"}</button>`;
+    q("#finish-btn").addEventListener("click", async () => {
+      if (s.status === "created") { location.href = "/"; return; }
+      if (!confirm(isTrain ? "确定结束训练？将生成训练总结。"
+                           : "确定结束面试？结束后将给出评级和反馈。")) return;
+      await sendAction("/finish", {});
+    });
   }
 
   function renderChatFoot() {
     const foot = q("#chat-foot");
     if (!foot || !state.current) return;
+    syncFinishBtn();
     const s = state.current;
     const body = q("#chat-body");
     const isTrain = s.kind === "training";
     // 开始请求进行中不算"未开始"：立即显示对话区（思考气泡可见），否则消息区会被 starting 隐藏、整页空白
     const starting = s.status === "created" && !state.busy;
-    if (body) body.classList.toggle("starting", starting);
+    if (body) {
+      body.classList.toggle("starting", starting);
+      body.classList.toggle("ended", s.status === "scored");
+    }
     if (s.status === "scored") {
+      // 结果面板在消息流中渲染；底部只放继续按钮（面试）或留空（训练）
       foot.innerHTML = "";
       q("#chat-body").classList.add("ended");
-      const box = q("#chat-inner");
-      if (box && !box.querySelector(".result")) {
-        box.insertAdjacentHTML("beforeend",
-          isTrain ? trainingResultHtml(s.result) : resultHtml(s.result));
-      }
+      syncFinishBtn();
       return;
     }
     if (s.status === "created") {
@@ -1048,16 +1102,12 @@
         return;
       }
       state.view = "chat";
-      state.current = { id: location.pathname.match(/^\/session\/([a-zA-Z0-9]+)/)[1],
+      state.current = { id: location.pathname.match(/^\/session\/([^/?]+)/)[1],
                         kind: b.kind, name: b.name, messages: b.messages,
                         status: "active", time_limit_min: null };
       state.atBottom = true;
       q("#back").addEventListener("click", () => { location.href = "/"; });
-      q("#finish-btn").addEventListener("click", async () => {
-        if (!confirm(b.kind === "training" ? "确定结束训练？将生成训练总结。"
-                                           : "确定结束面试？结束后将给出评级和反馈。")) return;
-        await sendAction("/finish", {});
-      });
+      syncFinishBtn();
       const box = q("#chat-scroll");
       box.scrollTop = box.scrollHeight;
       box.addEventListener("scroll", () => {
@@ -1067,7 +1117,7 @@
       return;
     }
 
-    const m = location.pathname.match(/^\/session\/([a-zA-Z0-9]+)/);
+    const m = location.pathname.match(/^\/session\/([^/?]+)/);
     let user = null;
     try {
       user = (await api("/me")).user;

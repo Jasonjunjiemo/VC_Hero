@@ -194,6 +194,10 @@ def _session_view(s, detail=False):
     }
     if s.get("result"):
         v["result"] = s["result"]
+    if s.get("results_history"):
+        v["results_history"] = s["results_history"]
+    if s.get("continuation_mode"):
+        v["continuation_mode"] = True
     if detail:
         v["messages"] = s["messages"]
         v["phase"] = s.get("phase")
@@ -213,15 +217,22 @@ def sessions():
 
 
 def _interview_import_text(s):
-    """把一场完整面试会话（对话 + 评级 + 反馈）转成训练上下文文本。"""
+    """把一场完整面试会话（对话 + 每一次面试结果）转成训练上下文文本。"""
     lines = [f"面试会话：{s['name']}", ""]
     for m in s["messages"]:
         who = "面试官" if m["role"] == "interviewer" else "候选人"
         lines.append(f"【{who}】{m['content']}")
+    history = s.get("results_history", [])
+    for i, h in enumerate(history, 1):
+        r = h["result"]
+        lines += ["", f"【第{i}次面试结果】评级 {r.get('grade', '-')}（总分 {r.get('total', '-')}）",
+                  f"【第{i}次反馈】{r.get('feedback', '')}"]
     r = s.get("result")
     if r:
-        lines += ["", f"【最终评级】{r.get('grade', '-')}（总分 {r.get('total', '-')}）",
-                  f"【面试反馈】{r.get('feedback', '')}"]
+        n = len(history) + 1
+        prefix = f"【第{n}次面试结果（最新）】" if history else "【最终评级】"
+        lines += ["", f"{prefix}{r.get('grade', '-')}（总分 {r.get('total', '-')}）",
+                  f"【最新反馈】{r.get('feedback', '')}"]
     return "\n".join(lines)
 
 
@@ -377,6 +388,17 @@ def answer(session_id):
         engine, _ = _engine_for(current_user()["id"], session_id)
         s = engine.answer(_client(), current_user()["id"], session_id,
                           (request.json or {}).get("content"))
+        return jsonify({"ok": True, "session": _session_view(s, detail=True)})
+    except interview.InterviewError as e:
+        return _bad(str(e))
+
+
+@bp.post("/sessions/<session_id>/continue")
+@login_required
+def continue_session(session_id):
+    try:
+        engine, s = _engine_for(current_user()["id"], session_id)
+        s = engine.continue_session(_client(), current_user()["id"], session_id)
         return jsonify({"ok": True, "session": _session_view(s, detail=True)})
     except interview.InterviewError as e:
         return _bad(str(e))

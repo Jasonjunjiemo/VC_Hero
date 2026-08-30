@@ -13,7 +13,7 @@
     <div class="row">
       <div class="chat-float-title">{{ name }}{% if kind == "training" %}<span class="badge active">训练</span>{% endif %}</div>
       <div class="timer" id="timer">不限时</div>
-      <button class="ghost small" id="finish-btn">{% if kind == "training" %}结束训练{% else %}结束面试{% endif %}</button>
+      <span id="finish-slot"><button class="ghost small" id="finish-btn">{% if kind == "training" %}结束训练{% else %}结束面试{% endif %}</button></span>
     </div>
   </div>
   <div class="chat-body" id="chat-body">

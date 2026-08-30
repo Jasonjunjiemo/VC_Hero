@@ -188,6 +188,21 @@ def main():
     d = c.req("POST", f"/api/sessions/{sid}/answer", {"content": "还能答吗"})
     expect("error" in d, "结束后禁止回答")
 
+    print("[6] 继续面试")
+    d = c.req("POST", f"/api/sessions/{sid}/continue", {})
+    expect(d.get("ok") and d["session"]["status"] == "active"
+           and d["session"]["continuation_mode"], "结束后继续面试")
+    from vc_hero import config as _cfg
+    for i in range(_cfg.CONTINUATION_AUTO_RESULT_ANSWERS):
+        d = c.req("POST", f"/api/sessions/{sid}/answer", {"content": f"继续回答{i+1}"})
+    expect(d["session"]["status"] == "scored", "续聊满轮数自动生成新结果")
+    expect(len(d["session"].get("results_history", [])) == 1, "历史结果快照保留")
+    expect(d["session"]["task_total"] == 1, "继续后不新增任务")
+    # 新结果后还可以再次继续
+    d = c.req("POST", f"/api/sessions/{sid}/continue", {})
+    expect(d.get("ok") and d["session"]["status"] == "active", "可从新结果再次继续")
+    c.req("POST", f"/api/sessions/{sid}/finish", {})
+
     print("[7] 训练会话（学习会话）")
     d = c.req("POST", "/api/sessions", {"kind": "training", "name": "空白训练",
                                         "context_type": "none"})
@@ -224,6 +239,14 @@ def main():
     d = c.req("POST", f"/api/sessions/{tid}/finish", {})
     expect(d["session"]["status"] == "scored", "训练结束")
     expect("训练总结" in d["session"]["result"]["summary"], "生成训练总结")
+
+    print("[7.5] 训练继续会话")
+    d = c.req("POST", f"/api/sessions/{tid}/continue", {})
+    expect(d.get("ok") and d["session"]["status"] == "active", "训练结束后继续训练")
+    for i in range(_cfg.CONTINUATION_AUTO_RESULT_ANSWERS):
+        d = c.req("POST", f"/api/sessions/{tid}/answer", {"content": f"继续练习{i+1}"})
+    expect(d["session"]["status"] == "scored", "续聊满轮数自动生成新总结")
+    expect(len(d["session"].get("results_history", [])) == 1, "历史训练总结快照保留")
 
     print("[8] 训练上下文文件上传")
     boundary2 = "----ctxtest"

@@ -69,7 +69,7 @@ def _build_system_prompt(s, resume_text):
         scenario = ""
     else:
         phase_rules = prompts.load_prompt("Deal_Sourcing_Knowhow_Task_and_Questioning")
-        task_name, task_text = s["tasks"][s["task_index"]]
+        task_name, task_text = s["tasks"][min(s["task_index"], len(s["tasks"]) - 1)]
         if s["task_turns"] == 0:
             phase_desc = (
                 f"当前进入阶段二【行业 Know-how 场景任务】的第 {s['task_index'] + 1}/{len(s['tasks'])} 个任务"
@@ -139,6 +139,28 @@ def answer(client, user_id, session_id, content):
 
         if _time_expired(s):
             return finish(client, user_id, session_id)
+        # 继续面试：满 N 轮自动生成新一轮结果
+        if s.get("continuation_mode"):
+            s["since_result"] = s.get("since_result", 0) + 1
+            if s["since_result"] >= config.CONTINUATION_AUTO_RESULT_ANSWERS:
+                return _score(client, s)
+        return _ask_next(client, s)
+
+
+def continue_session(client, user_id, session_id):
+    """面试结束后续聊：不开启新 task，从上次结尾自然继续，AI 侧无感知中断。
+
+    结束后消息流停在考生的回答上，因此继续时先让考官自然抛出下一个问题。
+    """
+    with _session_lock(session_id):
+        s = _get_active(user_id, session_id)
+        if s["status"] != "scored":
+            raise InterviewError("当前状态不能继续面试")
+        s["status"] = "active"
+        s["ended_at"] = None
+        s["continuation_mode"] = True
+        s["since_result"] = 0
+        storage.save_session(s)
         return _ask_next(client, s)
 
 
@@ -165,21 +187,23 @@ def _ask_next(client, s):
 
     简历阶段结束有两种触发：模型在回复末尾输出 [[CV_DONE]] 标记（模型自行决定题数），
     或答题数达到安全上限（防止模型忘记收尾）。
+    继续面试（continuation_mode）不推进阶段/任务计数，在当前语境中自由追问。
     """
-    while True:
-        if s["phase"] == "cv" and s["cv_asked"] >= s["cv_cap"]:
-            if s["task_index"] >= len(s["tasks"]):
-                return _score(client, s)
-            s["phase"] = "task"
-            s["task_turns"] = 0
-            continue
-        if s["phase"] == "task" and s["task_turns"] >= config.TASK_TURNS_PER_TASK:
-            s["task_index"] += 1
-            s["task_turns"] = 0
-            if s["task_index"] >= len(s["tasks"]):
-                return _score(client, s)
-            continue
-        break
+    if not s.get("continuation_mode"):
+        while True:
+            if s["phase"] == "cv" and s["cv_asked"] >= s["cv_cap"]:
+                if s["task_index"] >= len(s["tasks"]):
+                    return _score(client, s)
+                s["phase"] = "task"
+                s["task_turns"] = 0
+                continue
+            if s["phase"] == "task" and s["task_turns"] >= config.TASK_TURNS_PER_TASK:
+                s["task_index"] += 1
+                s["task_turns"] = 0
+                if s["task_index"] >= len(s["tasks"]):
+                    return _score(client, s)
+                continue
+            break
 
     resume_text = storage.get_resume_text(s["user_id"], s["resume_id"]) or ""
     system_prompt = _build_system_prompt(s, resume_text)
@@ -202,12 +226,22 @@ def _ask_next(client, s):
             s["task_turns"] = 0
             return _ask_next(client, s)
         return s
-    s["task_turns"] += 1
+    if not s.get("continuation_mode"):
+        s["task_turns"] += 1
     storage.save_session(s)
     return s
 
 
 def _score(client, s):
+    # 保留上一份结果快照（仅用于页面展示与训练导入，不进入 AI 上下文）
+    prev = s.get("result")
+    boundary = s.get("result_boundary", 0)
+    if prev and len(s["messages"]) > boundary:
+        s.setdefault("results_history", []).append({
+            "result": prev,
+            "ended_at": s.get("ended_at"),
+            "message_count": boundary,
+        })
     s["status"] = "scored"
     s["ended_at"] = time.time()
     transcript = "\n\n".join(
@@ -230,5 +264,8 @@ def _score(client, s):
         "grade": result.get("grade", ""),
         "feedback": result.get("feedback", ""),
     }
+    s["result_boundary"] = len(s["messages"])
+    s["continuation_mode"] = False
+    s["since_result"] = 0
     storage.save_session(s)
     return s
