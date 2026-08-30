@@ -477,9 +477,12 @@ h2.card-title { font-size: 17px; margin-bottom: 16px; font-weight: 600; }
   user-select: none;
 }
 .result .panel-head .panel-chev {
-  margin-left: auto; color: var(--ink-3); font-size: 14px;
-  transition: transform .18s ease; flex: none;
+  margin-left: auto; color: var(--ink-2); font-size: 20px; font-weight: 700;
+  width: 30px; height: 30px; border-radius: 8px; flex: none;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: transform .18s ease, background .15s ease;
 }
+.result .panel-head:hover .panel-chev { background: #eef0f6; color: var(--brand); }
 .result.collapsed { padding: 14px 22px; }
 .result.collapsed .panel-body { display: none; }
 .result.collapsed .panel-chev { transform: rotate(-90deg); }
