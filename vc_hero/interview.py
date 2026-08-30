@@ -7,6 +7,7 @@
 
 每个会话一个互斥锁，保证"考生只能回答一次、考官问完才答"的严格轮转。
 """
+import difflib
 import random
 import threading
 import time
@@ -99,6 +100,30 @@ def _build_system_prompt(s, resume_text):
         + "\n\n===== 候选人简历 =====\n" + resume_text
         + "\n\n===== 本阶段提问规则 =====\n" + phase_rules
     )
+
+
+def _is_duplicate_reply(reply, messages, threshold=0.70):
+    """与最近几条考官消息比对，判断是否重复提问（逐字或换措辞问同一点）。"""
+    prev = [m["content"] for m in messages if m["role"] == "interviewer"][-3:]
+    for p in prev:
+        if difflib.SequenceMatcher(None, reply, p).ratio() >= threshold:
+            return True
+    return False
+
+
+def _dedup_reply(client, system_prompt, messages, reply, cv_done):
+    """若回复与近期问题重复，带纠偏指令重生成（最多 2 次），返回去重后的 (reply, cv_done)。"""
+    for _ in range(2):
+        if not _is_duplicate_reply(reply, messages):
+            return reply, cv_done
+        nudge = (system_prompt
+                 + "\n\n===== 纠偏指令（最高优先级）=====\n"
+                 + "你上一条回复与对话中已问过的问题重复了。本次必须换一个尚未问过的新考察点，"
+                   "不得再问同一个问题或同一个点的换措辞版本。")
+        retry = client.interviewer_reply(nudge, _history({"messages": messages}))
+        reply, done = _strip_marker(retry)
+        cv_done = cv_done or done
+    return reply, cv_done
 
 
 def _history(s):
@@ -244,6 +269,8 @@ def _ask_next(client, s):
     except KimiError as e:
         raise InterviewError(f"AI 服务暂时不可用，请稍后重试（{e}）")
     reply, cv_done = _strip_marker(reply)
+    # 兜底：与近期问题重复时重生成
+    reply, cv_done = _dedup_reply(client, system_prompt, s["messages"], reply, cv_done)
 
     s["messages"].append({"role": "interviewer", "content": reply,
                           "ts": time.time()})

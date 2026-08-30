@@ -15,14 +15,22 @@ from vc_hero import create_app  # noqa: E402
 BASE = "http://127.0.0.1:5000"
 
 
+TOPICS = ["社群冷启动", "嘉宾渠道", "活动转化", "团队协作", "时间规划", "失败复盘",
+          "用户画像", "增长策略", "预算控制", "外部合作", "数据追踪", "成员分层"]
+TEMPLATES = ["{t}具体怎么做的？", "谁牵头{t}，你怎么配合的？", "{t}上最大的坑是什么？",
+             "你怎么衡量{t}的效果？", "如果重做{t}你会改什么？"]
+
+
 class StubClient:
-    """模拟 Kimi：固定回复，第 3 条回复带阶段结束标记，验证状态机不需真实 API。"""
+    """模拟 Kimi：回复话题与句式都变化（避免触发服务端去重），第 4 条带阶段结束标记。"""
 
     n = 0
 
     def interviewer_reply(self, system_prompt, history):
         StubClient.n += 1
-        msg = f"【问题{StubClient.n}】请具体讲讲你在某项目里做了什么？"
+        topic = TOPICS[(StubClient.n - 1) % len(TOPICS)]
+        tpl = TEMPLATES[(StubClient.n - 1) % len(TEMPLATES)]
+        msg = f"【问题{StubClient.n}·{topic}】" + tpl.format(t=topic)
         if StubClient.n == 4:
             msg += "\n[[CV_DONE]]"
         return msg
