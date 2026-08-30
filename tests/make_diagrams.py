@@ -61,18 +61,18 @@ txt(ax, 0.06, 0.63, "VC Hero 是一位 AI 虚拟面试官……结束后给出 A
 box(ax, 0.06, 0.545, 0.14, 0.045, fc=BRAND, ec="none"); txt(ax, 0.13, 0.567, "立即开始模拟面试", size=8, color="white", ha="center", weight="bold")
 box(ax, 0.72, 0.545, 0.22, 0.225, fc="white", ec="none"); txt(ax, 0.83, 0.655, "插图\n(人物+气泡+评分卡)", size=8, color=GRAY, ha="center")
 # 会话面板
-box(ax, 0.03, 0.20, 0.94, 0.29)
-txt(ax, 0.05, 0.455, "面试会话 (2/10)", size=9, weight="bold")
-box(ax, 0.85, 0.435, 0.10, 0.04, fc=BRAND, ec="none"); txt(ax, 0.90, 0.455, "新建会话", size=7.5, color="white", ha="center")
-for i, (name, badge) in enumerate([("第一次模拟面试  [已完成] [评级 B]", "#e6f6ef"),
-                                   ("sourcing 训练  [进行中]", "#eef0fd")]):
-    y = 0.385 - i * 0.085
-    box(ax, 0.05, y, 0.90, 0.07)
-    txt(ax, 0.07, y + 0.035, name, size=8)
-    box(ax, 0.79, y + 0.015, 0.05, 0.04, fc=badge, ec="none"); txt(ax, 0.815, y + 0.035, "重命名", size=6.5, ha="center")
-    box(ax, 0.85, y + 0.015, 0.05, 0.04, fc="#fdeeed", ec="none"); txt(ax, 0.875, y + 0.035, "删除", size=6.5, ha="center")
-    box(ax, 0.91, y + 0.015, 0.04, 0.04, fc=BRAND, ec="none"); txt(ax, 0.93, y + 0.035, "进入", size=6.5, color="white", ha="center")
-txt(ax, 0.05, 0.20, "功能卡片区（简历深挖 / 场景任务 / 评级反馈）…", size=7.5, color=GRAY)
+box(ax, 0.03, 0.17, 0.94, 0.32)
+txt(ax, 0.05, 0.448, "面试会话 (2/10)", size=9, weight="bold")
+box(ax, 0.845, 0.428, 0.105, 0.042, fc=BRAND, ec="none"); txt(ax, 0.897, 0.449, "新建会话", size=7.5, color="white", ha="center")
+for i, (name, badge) in enumerate([("第一次模拟面试 [已完成] [评级 B]", "#e6f6ef"),
+                                   ("sourcing 训练 [进行中]", "#eef0fd")]):
+    y = 0.36 - i * 0.092
+    box(ax, 0.05, y, 0.90, 0.075)
+    txt(ax, 0.07, y + 0.038, name, size=8)
+    box(ax, 0.775, y + 0.018, 0.052, 0.04, fc=badge, ec="none"); txt(ax, 0.801, y + 0.038, "重命名", size=6.5, ha="center")
+    box(ax, 0.838, y + 0.018, 0.052, 0.04, fc="#fdeeed", ec="none"); txt(ax, 0.864, y + 0.038, "删除", size=6.5, ha="center")
+    box(ax, 0.901, y + 0.018, 0.045, 0.04, fc=BRAND, ec="none"); txt(ax, 0.923, y + 0.038, "进入", size=6.5, color="white", ha="center")
+txt(ax, 0.05, 0.135, "功能卡片区（简历深挖 / 场景任务 / 评级反馈）…", size=7.5, color=GRAY)
 fig.savefig(os.path.join(OUT, "proto1_home.png"), bbox_inches="tight", facecolor=BG)
 plt.close(fig)
 
@@ -140,27 +140,29 @@ txt(ax, 0.02, 0.925, "Flask + 原生 HTML/CSS/JS · 本地文件系统存储 · 
 
 def node(x, y, w, h, title, lines, fc=CARD, ec=LINE, title_color=INK):
     box(ax, x, y, w, h, fc=fc, ec=ec, lw=1.4)
-    txt(ax, x + w / 2, y + h - 0.028, title, size=9.5, ha="center", weight="bold", color=title_color)
+    txt(ax, x + w / 2, y + h - 0.030, title, size=9.5, ha="center", weight="bold", color=title_color)
     for i, ln in enumerate(lines):
-        txt(ax, x + 0.02, y + h - 0.065 - i * 0.033, ln, size=7.5, color="#4c5670")
+        txt(ax, x + 0.022, y + h - 0.075 - i * 0.036, ln, size=7.5, color="#4c5670")
 
 
 def arrow(x1, y1, x2, y2, label="", color=GRAY):
     ax.add_patch(FancyArrowPatch((x1, y1), (x2, y2), arrowstyle="-|>",
                                  mutation_scale=13, lw=1.4, color=color))
     if label:
-        txt(ax, (x1 + x2) / 2 + 0.012, (y1 + y2) / 2 + 0.012, label, size=7, color=color)
+        ax.text((x1 + x2) / 2, (y1 + y2) / 2 + 0.018, label, size=7, color=color,
+                ha="center", va="center",
+                bbox=dict(fc="white", ec="none", pad=1.2), zorder=5)
 
 
 # 浏览器层
-node(0.03, 0.66, 0.30, 0.20, "浏览器（单页应用 + SSR 首屏）", [
+node(0.03, 0.63, 0.30, 0.235, "浏览器（单页应用 + SSR 首屏）", [
     "static/：index(SPA) · app.js · style.css",
     "templates/：session.html(活动会话首屏)",
     "乐观回显 / 思考气泡 / 结果面板可收起",
     "右侧结果速览抽屉 · 双 Tab 主页",
 ])
 # Flask 层
-node(0.40, 0.66, 0.30, 0.20, "Flask 后端（vc_hero/）", [
+node(0.40, 0.63, 0.30, 0.235, "Flask 后端（vc_hero/）", [
     "routes.py：REST API（按 kind 分发）",
     "interview.py：面试状态机/[[CV_DONE]]",
     "training.py：训练引擎/训练总结",
@@ -168,27 +170,27 @@ node(0.40, 0.66, 0.30, 0.20, "Flask 后端（vc_hero/）", [
     "__init__.py：SSR 路由 / 缓存头 / 版本号",
 ])
 # 存储
-node(0.77, 0.66, 0.20, 0.20, "本地文件存储 data/", [
+node(0.77, 0.63, 0.20, 0.235, "本地文件存储 data/", [
     "users/：账号+简历(pdf/txt)",
     "tokens/：登录令牌",
     "sessions/：会话 JSON",
     "（无数据库，原子写入）",
 ], fc="#f4f6fb")
 # Kimi
-node(0.40, 0.30, 0.30, 0.20, "Kimi API（moonshot，kimi-k3）", [
+node(0.40, 0.28, 0.30, 0.235, "Kimi API（moonshot，kimi-k3）", [
     "kimi.py：生成 → 恰好2轮自检 → 发出",
     "thinking 关闭 · temperature 0.6",
     "429/空内容退避重试",
     "评分 JSON 输出 / 训练总结",
 ], fc="#eef0fd", ec=BRAND, title_color=BRAND)
 # 限速器
-node(0.03, 0.30, 0.30, 0.20, "全局限速 ratelimit.py", [
+node(0.03, 0.28, 0.30, 0.235, "全局限速 ratelimit.py", [
     "滑动窗口 1h：token/h · response/h · ¥5/h",
     "预占→实结成本核算（保守偏高计价）",
     "FIFO 公平队列（多用户负载均衡）",
 ], fc="#f4f6fb")
 # prompts
-node(0.77, 0.30, 0.20, 0.20, "prompts/（全部 md）", [
+node(0.77, 0.28, 0.20, 0.235, "prompts/（全部 md）", [
     "3 份原始规则 + 总控/自检×2",
     "评分格式 / 任务场景库",
     "后端零硬编码提示词",
@@ -198,16 +200,17 @@ node(0.25, 0.05, 0.50, 0.13, "部署：Ubuntu 服务器 152.136.60.146 :80", [
     "/opt/vc_hero · venv 隔离 · nohup（tests/deploy.py 一键部署）",
 ], fc="#e8f6ef", ec=GREEN, title_color="#0d7a52")
 
-arrow(0.33, 0.76, 0.40, 0.76, "HTTP/JSON")
-arrow(0.55, 0.66, 0.55, 0.50, "全部 LLM 调用")
-arrow(0.33, 0.42, 0.40, 0.76, "")
-arrow(0.33, 0.40, 0.40, 0.42, "acquire()")
-txt(ax, 0.335, 0.44, "放行/排队", size=6.5, color=GRAY)
-arrow(0.70, 0.40, 0.77, 0.40, "load_prompt")
-arrow(0.70, 0.76, 0.77, 0.76, "读写文件")
-arrow(0.50, 0.30, 0.45, 0.18, "")
-arrow(0.62, 0.30, 0.60, 0.18, "")
-txt(ax, 0.30, 0.245, "API Key（kimi_api_key.txt，不进 git）", size=7, color=GRAY)
+arrow(0.33, 0.747, 0.40, 0.747, "HTTP/JSON")
+arrow(0.55, 0.628, 0.55, 0.515, "全部 LLM 调用")
+arrow(0.33, 0.40, 0.40, 0.76, "")
+arrow(0.33, 0.39, 0.40, 0.40, "")
+ax.text(0.305, 0.415, "acquire() 放行/排队", size=7, color=GRAY, ha="left", va="center",
+        bbox=dict(fc="white", ec="none", pad=1.2), zorder=5)
+arrow(0.70, 0.398, 0.77, 0.398, "load_prompt")
+arrow(0.70, 0.747, 0.77, 0.747, "读写文件")
+arrow(0.50, 0.278, 0.45, 0.185, "")
+arrow(0.62, 0.278, 0.60, 0.185, "")
+txt(ax, 0.295, 0.225, "API Key（kimi_api_key.txt，不进 git）", size=7, color=GRAY)
 
 fig.savefig(os.path.join(OUT, "architecture.png"), bbox_inches="tight", facecolor="white")
 plt.close(fig)
