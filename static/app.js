@@ -136,7 +136,7 @@
           <h2 class="card-title" style="margin:0">${panelTitle} <span class="muted">(${list.length}/10)</span></h2>
           <button id="${newId}">新建${isTrain ? "学习" : "面试"}会话</button>
         </div>
-        <div id="${listId}" style="margin-top:8px"></div>
+        <div id="${listId}" style="margin-top:8px">${sessionListInnerHtml(list, isTrain)}</div>
       </div>` : "";
     return `
       <div class="tab-content">
@@ -197,8 +197,8 @@
     q("#hero-train")?.addEventListener("click", () => openTrainingModal());
     q("#new-session")?.addEventListener("click", () => openInterviewModal());
     q("#new-training")?.addEventListener("click", () => openTrainingModal());
-    renderSessionList();
-    renderTrainingSessionList();
+    bindSessionPanel("session-list", state.sessions, false);
+    bindSessionPanel("training-session-list", state.trainingSessions, true);
   }
 
   const wait = (ms) => new Promise(r => setTimeout(r, ms));
@@ -207,30 +207,33 @@
   async function switchTab(target) {
     if (state.tab === target || state.switching) return;
     state.switching = true;
-    const host = q("#tab-host");
-    const goingRight = target === "training";   // 面试在左、训练在右
-    if (state.user) {
-      try { await loadSessions(); } catch (e) { /* 列表刷新失败不阻塞切换 */ }
+    try {
+      const host = q("#tab-host");
+      const goingRight = target === "training";   // 面试在左、训练在右
+      if (state.user) {
+        try { await loadSessions(); } catch (e) { /* 列表刷新失败不阻塞切换 */ }
+      }
+      const cur = state.tab;
+      state.tab = target;
+      app.querySelectorAll(".seg-tab").forEach(b =>
+        b.classList.toggle("on", b.dataset.ltab === target));
+      if (host) {
+        const curHtml = tabContentHtml(cur);
+        const nextHtml = tabContentHtml(target);
+        // 轨道：向右切=[当前,新]，整体左移；向左切=[新,当前]，整体右移
+        host.className = "";
+        host.innerHTML = `<div class="tab-track ${goingRight ? "" : "rev"}">` +
+          (goingRight ? curHtml + nextHtml : nextHtml + curHtml) + "</div>";
+        const track = host.querySelector(".tab-track");
+        void track.offsetWidth;  // 强制回流，确保动画生效
+        track.classList.add(goingRight ? "go-left" : "go-right");
+        await wait(330);
+        host.innerHTML = nextHtml;
+        bindTabContent();
+      }
+    } finally {
+      state.switching = false;
     }
-    const cur = state.tab;
-    state.tab = target;
-    app.querySelectorAll(".seg-tab").forEach(b =>
-      b.classList.toggle("on", b.dataset.ltab === target));
-    if (host) {
-      const curHtml = tabContentHtml(cur);
-      const nextHtml = tabContentHtml(target);
-      // 轨道：向右切=[当前,新]，整体左移；向左切=[新,当前]，整体右移
-      host.className = "";
-      host.innerHTML = `<div class="tab-track ${goingRight ? "" : "rev"}">` +
-        (goingRight ? curHtml + nextHtml : nextHtml + curHtml) + "</div>";
-      const track = host.querySelector(".tab-track");
-      void track.offsetWidth;  // 强制回流，确保动画生效
-      track.classList.add(goingRight ? "go-left" : "go-right");
-      await wait(330);
-      host.innerHTML = nextHtml;
-      bindTabContent();
-    }
-    state.switching = false;
   }
 
   function bindLanding() {
@@ -411,6 +414,16 @@
   const LEVEL_TEXT = { low: "低", medium: "中", high: "高" };
   const STATUS_TEXT = { created: "未开始", active: "进行中", scored: "已完成" };
 
+  // 会话列表 HTML：在面板构建时一次性内联渲染（避免动画后才注入导致的"闪一下"展开）
+  function sessionListInnerHtml(list, isTrain) {
+    if (!list.length) {
+      return `<div class="empty">${isTrain
+        ? "还没有学习会话。新建一个学习会话，从空白或导入上下文开始训练。"
+        : "还没有会话。新建一个会话，选择简历后即可开始模拟面试。"}</div>`;
+    }
+    return list.map(s => sessionRowHtml(s, isTrain)).join("");
+  }
+
   function sessionRowHtml(s, isTrain) {
     const meta = isTrain
       ? `${s.context_type === "none" ? "空白开始" : esc(s.context_label || "导入上下文")} · ${s.message_count} 条对话 · ${fmtTime(s.created_at)}`
@@ -447,26 +460,10 @@
       }));
   }
 
-  function renderSessionList() {
-    const box = q("#session-list");
-    if (!box) return;
-    if (!state.sessions.length) {
-      box.innerHTML = `<div class="empty">还没有会话。新建一个会话，选择简历后即可开始模拟面试。</div>`;
-      return;
-    }
-    box.innerHTML = state.sessions.map(s => sessionRowHtml(s, false)).join("");
-    bindSessionList(box, state.sessions, false);
-  }
-
-  function renderTrainingSessionList() {
-    const box = q("#training-session-list");
-    if (!box) return;
-    if (!state.trainingSessions.length) {
-      box.innerHTML = `<div class="empty">还没有学习会话。新建一个学习会话，从空白或导入上下文开始训练。</div>`;
-      return;
-    }
-    box.innerHTML = state.trainingSessions.map(s => sessionRowHtml(s, true)).join("");
-    bindSessionList(box, state.trainingSessions, true);
+  // 列表已在 HTML 中内联渲染，这里只补事件绑定
+  function bindSessionPanel(listId, list, isTrain) {
+    const box = q("#" + listId);
+    if (box) bindSessionList(box, list, isTrain);
   }
 
   // 在会话名位置直接改名（Enter 保存，Esc 取消，失焦保存）
