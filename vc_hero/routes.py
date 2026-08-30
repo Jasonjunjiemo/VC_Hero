@@ -256,6 +256,24 @@ def create_session():
             context_label = "面试记录：" + src["name"]
         elif context_type != "none":
             return _bad("context_type 不合法")
+
+        # 可选：附带已上传的简历作为训练上下文
+        resume_names = []
+        for rid_ in (body.get("context_resume_ids") or [])[:5]:
+            r = next((x for x in storage.list_resumes(user_id) if x["id"] == rid_), None)
+            if not r:
+                return _bad("勾选的简历不存在")
+            text = storage.get_resume_text(user_id, rid_)
+            if text:
+                block = f"===== 简历：{r['filename']} =====\n{text[:8000]}"
+                context_text = (context_text + "\n\n" + block).strip() if context_text else block
+                resume_names.append(r["filename"])
+        if resume_names:
+            if context_type == "none":
+                context_type = "text"
+            if not context_label:
+                context_label = "简历：" + "、".join(resume_names)
+
         s = storage.create_session(user_id, name, kind="training",
                                    context_type=context_type,
                                    context_text=context_text,

@@ -613,6 +613,14 @@
               <label class="radio"><input type="radio" name="context_type" value="import"> 导入预设上下文</label>
             </div>
           </div>
+          <div>
+            <label>附带简历（可选）</label>
+            <div class="radio-row" id="ctx-resumes">
+              ${state.resumes.length
+                ? state.resumes.map(r => `<label class="radio"><input type="checkbox" name="ctx_resume" value="${r.id}"> ${esc(r.filename)}</label>`).join("")
+                : `<span class="muted">暂无简历，可到个人信息设置上传</span>`}
+            </div>
+          </div>
           <div id="context-box" style="display:none">
             <div class="radio-row">
               <label class="radio"><input type="radio" name="ctx_method" value="paste" checked> 粘贴文本</label>
@@ -690,6 +698,8 @@
       const errBox = mask.querySelector("#training-err");
       errBox.innerHTML = "";
       const body = { kind: "training", name: form.name.value.trim() };
+      const resumeIds = [...form.querySelectorAll('input[name="ctx_resume"]:checked')].map(c => c.value);
+      if (resumeIds.length) body.context_resume_ids = resumeIds;
       if (form.context_type.value === "import") {
         const m = form.ctx_method.value;
         if (m === "paste") {

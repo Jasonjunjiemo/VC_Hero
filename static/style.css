@@ -457,3 +457,9 @@ h2.card-title { font-size: 17px; margin-bottom: 16px; font-weight: 600; }
    否则其遗留的 flex 列布局会让带 margin:auto 的 chat-inner 收缩为内容宽度、挤在中央 */
 .chat-scroll { display: block; gap: 0; }
 .chat-body.ended .chat-scroll { justify-content: initial; }
+
+/* 弹层内 label 默认 display:block 会覆盖 plus-btn 的 inline-flex，导致 + 偏移，此处提权还原 */
+.modal label.plus-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  margin-bottom: 0; font-weight: 400; font-size: inherit; color: var(--ink-3);
+}

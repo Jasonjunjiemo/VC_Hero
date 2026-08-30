@@ -193,6 +193,12 @@ def main():
                                         "context_type": "none"})
     expect(d.get("ok") and d["session"]["kind"] == "training", "创建空白训练会话")
     tid = d["session"]["id"]
+    d = c.req("POST", "/api/sessions", {"kind": "training", "name": "附带简历",
+                                        "context_type": "none",
+                                        "context_resume_ids": [rid]})
+    expect(d.get("ok") and d["session"]["context_type"] == "text"
+           and "简历" in d["session"]["context_label"], "勾选简历作为训练上下文")
+    d = c.req("DELETE", "/api/sessions/" + d["session"]["id"])
     d = c.req("POST", "/api/sessions", {"kind": "training", "name": "导入面试记录",
                                         "context_type": "session",
                                         "context_session_id": "nonexistentid"})
