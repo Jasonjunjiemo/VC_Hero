@@ -400,26 +400,21 @@ h2.card-title { font-size: 17px; margin-bottom: 16px; font-weight: 600; }
 }
 .chat-scroll::-webkit-scrollbar-track, .modal::-webkit-scrollbar-track, .start-wrap::-webkit-scrollbar-track { background: transparent; }
 
-/* ---------- 顶栏：文档流内、全宽、透明无底 ---------- */
+/* ---------- 顶栏：文档流内、全宽、实心背景（结构上不可能遮挡内容） ---------- */
 .topbar {
   position: static;
   height: 56px; padding: 0 22px;
   display: flex; align-items: center; gap: 12px;
-  background: transparent; border: none; backdrop-filter: none;
+  background: #fff; border-bottom: 1px solid var(--line);
 }
 .page { padding-top: 28px; }
 
 /* 消息滚动区全宽（滚动条在视口最右侧），内容列居中 */
 .chat-body {
-  height: calc(100vh - 56px); height: calc(100dvh - 56px);
-  max-width: none; margin: 0; padding: 6px 0 0;
+  height: calc(100vh - 57px); height: calc(100dvh - 57px);
+  max-width: none; margin: 0; padding: 0;
 }
 .chat-scroll { padding: 0; }
-/* 滚离顶部后，上缘渐隐，内容自然淡出而非生硬切断 */
-.chat-scroll.scrolled {
-  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 32px);
-  mask-image: linear-gradient(to bottom, transparent, #000 32px);
-}
 .chat-inner {
   max-width: 880px; margin: 0 auto; padding: 14px 22px 18px;
   display: flex; flex-direction: column; gap: 18px;
