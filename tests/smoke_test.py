@@ -70,7 +70,7 @@ class Client:
         if self.cookie:
             r.add_header("Cookie", self.cookie)
         try:
-            resp = urllib.request.urlopen(r, timeout=30)
+            resp = urllib.request.urlopen(r, timeout=600)
             sc = resp.headers.get("Set-Cookie")
             if sc:
                 self.cookie = sc.split(";")[0]

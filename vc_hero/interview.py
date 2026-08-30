@@ -78,7 +78,9 @@ def _build_system_prompt(s, resume_text):
 
 
 def _history(s):
-    return [{"role": m["role"], "content": m["content"]} for m in s["messages"]]
+    # Kimi API 只接受 system/user/assistant 角色
+    return [{"role": "assistant" if m["role"] == "interviewer" else "user",
+             "content": m["content"]} for m in s["messages"]]
 
 
 def start_session(client, user_id, session_id):
