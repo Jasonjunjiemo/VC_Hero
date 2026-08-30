@@ -470,3 +470,18 @@ h2.card-title { font-size: 17px; margin-bottom: 16px; font-weight: 600; }
   padding: 4px 0 30px;
 }
 .continue-bar .big-btn { padding: 11px 42px; font-size: 15.5px; }
+
+/* ---------- 结果面板可展开/收起（Codex 风格） ---------- */
+.result .panel-head {
+  display: flex; align-items: center; gap: 16px; cursor: pointer;
+  user-select: none;
+}
+.result .panel-head .panel-chev {
+  margin-left: auto; color: var(--ink-3); font-size: 14px;
+  transition: transform .18s ease; flex: none;
+}
+.result.collapsed { padding: 14px 22px; }
+.result.collapsed .panel-body { display: none; }
+.result.collapsed .panel-chev { transform: rotate(-90deg); }
+.result.collapsed .grade-ring { width: 40px; height: 40px; font-size: 20px; }
+.result .panel-head:hover .result-title { color: var(--brand); }

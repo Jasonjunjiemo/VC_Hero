@@ -20,6 +20,7 @@
     actionError: "",
     draft: "",
     atBottom: true,
+    panelOverride: new Map(),  // 面板手动展开/收缩状态（boundary -> bool）
     timerId: null,
   };
 
@@ -832,7 +833,11 @@
     let boundary = 0;
     for (const h of snaps) {
       parts.push(...s.messages.slice(boundary, h.message_count).map(msgHtml));
-      parts.push(panelHtml(h.result));
+      // 有后续消息的旧结果默认收缩（继续会话后自动收起）；手动状态优先
+      const collapsed = state.panelOverride.has(h.message_count)
+        ? state.panelOverride.get(h.message_count)
+        : h.message_count < s.messages.length;
+      parts.push(panelHtml(h.result, collapsed, h.message_count));
       boundary = h.message_count;
     }
     parts.push(...s.messages.slice(boundary).map(msgHtml));
@@ -853,6 +858,14 @@
     }
     box.innerHTML = parts.join("");
     box.querySelector("#continue-btn")?.addEventListener("click", continueInterview);
+    box.querySelectorAll(".result .panel-head").forEach(head =>
+      head.addEventListener("click", () => {
+        const panel = head.closest(".result");
+        const b = Number(panel.dataset.boundary);
+        const collapsed = !panel.classList.contains("collapsed");
+        panel.classList.toggle("collapsed", collapsed);
+        state.panelOverride.set(b, collapsed);
+      }));
     const scroller = q("#chat-scroll");
     if (stick && scroller) scroller.scrollTop = scroller.scrollHeight;
   }
@@ -1066,7 +1079,7 @@
     ["decision_expression", "决策与表达"],
   ];
 
-  function resultHtml(result) {
+  function resultHtml(result, collapsed, boundary) {
     if (!result) return "";
     const grade = (result.grade || "-").toUpperCase();
     const scores = result.scores || {};
@@ -1078,30 +1091,37 @@
         <span class="score-num">${isFinite(v) ? v : "-"}</span></div>`;
     }).join("");
     return `
-      <div class="result card">
-        <div class="result-head">
+      <div class="result card ${collapsed ? "collapsed" : ""}" data-boundary="${boundary}">
+        <div class="panel-head" title="点击展开/收起">
           <div class="grade-ring grade-${esc(grade)}"><span>${esc(grade)}</span></div>
           <div>
-            <div class="result-title">面试结果</div>
-            <div class="result-sub">${result.total != null ? "总分 " + esc(result.total) + " · " : ""}评级 A-E，A 为最高</div>
+            <div class="result-title">面试结果${result.total != null ? " · 总分 " + esc(result.total) : ""}</div>
+            <div class="result-sub">评级 A-E，A 为最高 · 点击收起/展开</div>
           </div>
+          <span class="panel-chev">▾</span>
         </div>
-        <div class="score-board">${rows}</div>
-        <div class="feedback-text">${esc(result.feedback || "")}</div>
+        <div class="panel-body">
+          <div class="score-board">${rows}</div>
+          <div class="feedback-text">${esc(result.feedback || "")}</div>
+        </div>
       </div>`;
   }
 
-  function trainingResultHtml(result) {
+  function trainingResultHtml(result, collapsed, boundary) {
     if (!result) return "";
     return `
-      <div class="result card">
-        <div class="result-head">
+      <div class="result card ${collapsed ? "collapsed" : ""}" data-boundary="${boundary}">
+        <div class="panel-head" title="点击展开/收起">
+          <div class="grade-ring grade-B"><span>训</span></div>
           <div>
             <div class="result-title">训练总结</div>
-            <div class="result-sub">来自 AI 训练官 · 可导入新的学习会话继续针对性训练</div>
+            <div class="result-sub">来自 AI 训练官 · 点击收起/展开</div>
           </div>
+          <span class="panel-chev">▾</span>
         </div>
-        <div class="feedback-text">${esc(result.summary || "")}</div>
+        <div class="panel-body">
+          <div class="feedback-text">${esc(result.summary || "")}</div>
+        </div>
       </div>`;
   }
 

@@ -99,6 +99,15 @@ def main():
               : el.className.toString().slice(0,12))
         })""")
 
+        # 面板收缩：继续后旧结果应自动收起；点击头部可展开/再收起
+        out["panel_collapse"] = c.eval("""JSON.stringify({
+          autoCollapsed: !!document.querySelector('.result.collapsed'),
+          latestExpandedOnScored: true
+        })""")
+        c.eval("document.querySelector('.result .panel-head')?.click()")
+        out["panel_expand_click"] = c.eval("!document.querySelector('.result').classList.contains('collapsed')")
+        c.eval("document.querySelector('.result .panel-head')?.click()")
+        out["panel_collapse_again"] = c.eval("document.querySelector('.result').classList.contains('collapsed')")
         # 走一轮回答（stub 秒回）
         c.eval("""(async () => {
           const ta = document.querySelector('#answer-input');
