@@ -82,8 +82,14 @@ def main():
           rings: [...document.querySelectorAll('.grade-ring')].map(g => g.textContent)
         })""")
 
-        # 点击面板下方的"继续面试"
+        # 点击面板下方的"继续面试"——立即检查反馈（禁用 + 思考气泡），不等响应
         c.eval("document.querySelector('#continue-btn')?.click()")
+        out["continue_immediate_feedback"] = c.eval("""JSON.stringify({
+          btnDisabled: document.querySelector('#continue-btn')?.disabled || false,
+          btnText: document.querySelector('#continue-btn')?.textContent || null,
+          thinking: !!document.querySelector('#thinking-msg'),
+          topBtnDisabled: document.querySelector('#finish-btn')?.disabled || false
+        })""")
         time.sleep(1.5)
         out["after_continue_click"] = c.eval("""JSON.stringify({
           status: (window.__s = document.querySelector('#answer-input')) ? 'has-composer' : 'no-composer',

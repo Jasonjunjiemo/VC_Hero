@@ -862,14 +862,23 @@
     if (state.busy || !state.current) return;
     if (state.current.status !== "scored") return;
     const sid = state.current.id;
+    // 立即反馈：禁用按钮、改名"准备中…"、思考气泡即刻出现在结果面板下方
+    state.busy = true;
+    renderMessages();
+    syncFinishBtn();
+    const btn = q("#continue-btn");
+    if (btn) { btn.disabled = true; btn.textContent = "准备中…"; }
     try {
       const d = await api("/sessions/" + sid + "/continue", { method: "POST", body: "{}" });
+      state.busy = false;
       state.current = d.session;
       state.atBottom = true;
       renderMessages();
       renderChatFoot();
     } catch (err) {
+      state.busy = false;
       state.actionError = err.message;
+      renderMessages();
       renderChatFoot();
     }
   }
@@ -883,11 +892,11 @@
     const s = state.current;
     const isTrain = s.kind === "training";
     if (s.status === "scored") {
-      slot.innerHTML = `<button class="ghost small" id="finish-btn">${isTrain ? "继续训练" : "继续面试"}</button>`;
+      slot.innerHTML = `<button class="ghost small" id="finish-btn" ${state.busy ? "disabled" : ""}>${isTrain ? "继续训练" : "继续面试"}</button>`;
       q("#finish-btn").addEventListener("click", continueInterview);
       return;
     }
-    slot.innerHTML = `<button class="ghost small" id="finish-btn">${isTrain ? "结束训练" : "结束面试"}</button>`;
+    slot.innerHTML = `<button class="ghost small" id="finish-btn" ${state.busy ? "disabled" : ""}>${isTrain ? "结束训练" : "结束面试"}</button>`;
     q("#finish-btn").addEventListener("click", async () => {
       if (s.status === "created") { location.href = "/"; return; }
       if (!confirm(isTrain ? "确定结束训练？将生成训练总结。"
