@@ -836,11 +836,9 @@
     const s = state.current;
     const body = q("#chat-body");
     const isTrain = s.kind === "training";
-    if (s.status === "created") {
-      if (body) body.classList.add("starting");
-    } else if (body) {
-      body.classList.remove("starting");
-    }
+    // 开始请求进行中不算"未开始"：立即显示对话区（思考气泡可见），否则消息区会被 starting 隐藏、整页空白
+    const starting = s.status === "created" && !state.busy;
+    if (body) body.classList.toggle("starting", starting);
     if (s.status === "scored") {
       foot.innerHTML = "";
       q("#chat-body").classList.add("ended");
