@@ -443,6 +443,8 @@ h2.card-title { font-size: 17px; margin-bottom: 16px; font-weight: 600; }
 .chat-floatbar .user-btn { border: none; box-shadow: none; background: transparent; }
 .chat-floatbar > button.ghost { background: #fff; }
 .chat-floatbar > button.ghost:hover { background: #f0f2f8; }
+/* 左上 logo pill 留足内边距，不紧贴文字 */
+.chat-floatbar .logo { padding: 6px 16px; gap: 8px; font-size: 17px; }
 .chat-float-title {
   font-weight: 600; font-size: 14px; color: var(--ink-2);
   max-width: 40vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
